@@ -1,0 +1,20 @@
+# Deny everything by default
+*
+
+# Repository files
+!/.gitignore
+!/README.md
+!/LICENSE
+
+# Scripts
+!/bin/
+!/bin/check-system-updates
+
+# systemd
+!/systemd/
+!/systemd/server-health-check.service
+!/systemd/server-health-check.timer
+
+# Configuration templates
+!/config/
+!/config/config.example
