@@ -8,14 +8,16 @@ show_help() {
 Usage: server-health-check <command> [options]
 
 Commands:
-  init       Create /etc/server-health-check.conf from the example configuration.
+  init-config
+             Create /etc/server-health-check.conf from the example configuration.
              Requires root. Existing paths are never overwritten.
   validate-config
              Check configuration ownership, permissions, and values.
              Requires root. Does not modify files or send email.
   test-email Send a test email using the configured Mailgun account.
              Requires root. Does not run health checks.
-  check      Check reboot status and print the result. Requires root.
+  check-reboot
+             Check reboot status and print the result. Requires root.
              Currently checks only the reboot-required marker. Does not send email.
 
 Options:
@@ -72,20 +74,20 @@ main() {
         '')
             show_help
             ;;
-        init|validate-config|test-email|check)
+        init-config|validate-config|test-email|check-reboot)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
             case $command_name in
-                check)
+                check-reboot)
                     # shellcheck source=lib/checks/reboot.sh
                     source "$project_directory/lib/checks/reboot.sh" || return 1
                     printf 'Checks performed: reboot status only\n'
                     check_reboot
                     ;;
-                init)
+                init-config)
                     # shellcheck source=lib/init.sh
                     source "$project_directory/lib/init.sh" || return 1
                     init_config "$project_directory/config/config.example" /etc/server-health-check.conf

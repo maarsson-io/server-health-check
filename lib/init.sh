@@ -36,7 +36,7 @@ init_config() (
     fi
 
     # GNU ln -T treats the destination as an exact path, including for directories
-    # and symlinks. Linking fails if it exists, even after a concurrent init.
+    # and symlinks. Linking fails if it exists, even after a concurrent init-config.
     if ! ln -T -- "$temporary_file" "$destination"; then
         log_error 'could not create configuration; an existing path will not be overwritten.'
         return 1

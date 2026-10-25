@@ -17,11 +17,11 @@ From the project directory on an Ubuntu server:
 
 ```sh
 ./bin/server-health-check --help
-sudo ./bin/server-health-check init
+sudo ./bin/server-health-check init-config
 sudo ./bin/server-health-check validate-config
 ```
 
-The `init` command creates `/etc/server-health-check.conf` from the example with
+The `init-config` command creates `/etc/server-health-check.conf` from the example with
 root-only access. If the path already exists, it stops without changing it.
 Edit the created file to set your server name and email credentials. Keep real
 credentials outside the repository.
@@ -32,7 +32,7 @@ For a project installed at `/opt/server-health-check`, create a command shortcut
 sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/server-health-check
 ```
 
-Then run `server-health-check --help` or `sudo server-health-check init` from any
+Then run `server-health-check --help` or `sudo server-health-check init-config` from any
 directory.
 
 After editing the configuration, run `sudo server-health-check validate-config`.
@@ -55,7 +55,7 @@ sudo server-health-check test-email --without-sending
 `--without-sending` is a shared email-delivery option, accepted before or after the
 command. It displays each email's subject and body instead of contacting Mailgun.
 All other command actions still run, including configuration validation and health
-checks. It does not prevent `init` from creating a configuration file.
+checks. It does not prevent `init-config` from creating a configuration file.
 
 Actual email delivery requires `curl`. Success means Mailgun accepted the message for delivery;
 confirm arrival in the recipient inbox. Requests time out after 30 seconds and
@@ -65,7 +65,7 @@ without a named temporary credentials file. API response bodies are not printed.
 To check reboot status without sending email:
 
 ```sh
-sudo server-health-check check
+sudo server-health-check check-reboot
 ```
 
 Currently this checks only `/run/reboot-required`; it does not assess overall
