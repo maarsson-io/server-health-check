@@ -2,7 +2,7 @@
 # 1 (failed/unknown). Only application-defined check functions are passed here.
 
 run_checks() {
-    local check_function result summary
+    local check_function result summary separator=' '
     local ok_count=0 action_count=0 unknown_count=0
 
     if (( $# == 0 )); then
@@ -12,7 +12,8 @@ run_checks() {
 
     printf 'Checks performed:'
     for check_function in "$@"; do
-        printf ' %s' "${check_function#check_}"
+        printf '%s%s' "$separator" "${check_function#check_}"
+        separator=', '
     done
     printf '\n\n'
 
