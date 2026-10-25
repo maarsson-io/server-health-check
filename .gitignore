@@ -8,7 +8,11 @@
 
 # Scripts
 !/bin/
-!/bin/check-system-updates
+!/bin/server-health-check
+
+# Shell libraries
+!/lib/
+!/lib/init.sh
 
 # systemd
 !/systemd/

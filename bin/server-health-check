@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+show_help() {
+    cat <<'HELP'
+Usage: server-health-check <command> [options]
+
+Commands:
+  init       Create /etc/server-health-check.conf from the example configuration.
+             Requires root. Existing paths are never overwritten.
+
+Options:
+  -h, --help Show this help message.
+
+Examples (from the project directory):
+  ./bin/server-health-check --help
+  sudo ./bin/server-health-check init
+
+Exit codes:
+  0  Success.
+  1  Operation failed (including an existing configuration or insufficient privileges).
+  2  Invalid command or options.
+HELP
+}
+
+main() {
+    case "${1:-}" in
+        ''|-h|--help)
+            if (( $# > 1 )); then
+                printf 'Error: unexpected arguments. Use --help for usage.\n' >&2
+                return 2
+            fi
+            show_help
+            ;;
+        init)
+            if (( $# == 2 )) && [[ $2 == -h || $2 == --help ]]; then
+                show_help
+                return
+            fi
+            if (( $# != 1 )); then
+                printf 'Error: init does not accept options yet. Use --help for usage.\n' >&2
+                return 2
+            fi
+            if (( EUID != 0 )); then
+                printf 'Error: init must be run as root.\n' >&2
+                return 1
+            fi
+
+            local project_directory
+            project_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P) || return 1
+
+            # Load application code only; configuration files are never sourced.
+            # shellcheck source=lib/init.sh
+            source "$project_directory/lib/init.sh" || return 1
+            init_config "$project_directory/config/config.example" /etc/server-health-check.conf
+            ;;
+        *)
+            printf 'Error: unknown command. Use --help for usage.\n' >&2
+            return 2
+            ;;
+    esac
+}
+
+main "$@"
