@@ -111,6 +111,7 @@ sudo server-health-check check-unattended-upgrades
 This checks the standard Ubuntu daily APT timer and periodic settings, then
 requires both a successful APT `upgrade-stamp` and a matching completed
 unattended-upgrades log within 48 hours. A successful run with no updates counts.
+The OK result shows the successful run time as `YYYY-MM-DD HH:MM` in the server's local timezone.
 The previous rotated log (plain or gzip) is also read when present.
 
 Disabled automation or an explicitly failed attempt requires attention (exit `3`).

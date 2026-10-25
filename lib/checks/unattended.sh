@@ -55,7 +55,7 @@ check_unattended_upgrades() {
     local success_stamp=${2:-/var/lib/apt/periodic/upgrade-stamp}
     local tool settings line key value timer service stamp_before stamp_after history
     local start last complete errors simulation warnings malformed
-    local now_ms stamp_ms start_ms last_ms age_ms
+    local now_ms stamp_ms start_ms last_ms age_ms success_time
     local cfg_ENABLE=1 cfg_INTERVAL=0 cfg_STATE=/var/lib/apt/
     local cfg_LOGDIR='' cfg_LOGFILE='' cfg_OLD_LOGDIR='' cfg_OLD_LOGFILE=''
 
@@ -177,5 +177,9 @@ check_unattended_upgrades() {
         unattended_unknown 'unattended-upgrades has no matching successful run within the last 48 hours.'
         return 1
     fi
-    printf 'Unattended upgrades: OK (successful run verified within the last 48 hours)\n'
+    if ! success_time=$(date -d "$stamp_before" '+%Y-%m-%d %H:%M' 2>/dev/null); then
+        unattended_unknown 'could not format the successful unattended-upgrades run time.'
+        return 1
+    fi
+    printf 'Unattended upgrades: OK (successful run at %s)\n' "$success_time"
 }
