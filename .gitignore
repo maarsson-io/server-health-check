@@ -21,6 +21,7 @@
 !/lib/checks/
 !/lib/checks/reboot.sh
 !/lib/checks/apt.sh
+!/lib/checks/unattended.sh
 
 # systemd
 !/systemd/

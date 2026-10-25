@@ -9,7 +9,7 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, reboot checks, email reports, and a weekly systemd timer
+APT update analysis, reboot and unattended-upgrades checks, email reports, and a weekly systemd timer
 are available.
 
 ## Usage
@@ -102,14 +102,31 @@ review (exit `3`); phased updates alone do not (exit `0`). A failed refresh or
 simulation, or an unrecognized result, is unknown (exit `1`). This does not assess
 whether unattended upgrades will install a package automatically.
 
+To verify recent automatic-upgrade execution without running upgrades:
+
+```sh
+sudo server-health-check check-unattended-upgrades
+```
+
+This checks the standard Ubuntu daily APT timer and periodic settings, then
+requires both a successful APT `upgrade-stamp` and a matching completed
+unattended-upgrades log within 48 hours. A successful run with no updates counts.
+The previous rotated log (plain or gzip) is also read when present.
+
+Disabled automation or an explicitly failed attempt requires attention (exit `3`).
+Missing, stale, unreadable, inconsistent, or unrecognized evidence is unknown
+(exit `1`), as are warnings, simulations, and a run still in progress. Custom
+schedulers or log locations are not verified by this initial implementation.
+The check does not change settings or audit the allowed security-update origins.
+
 To run all implemented checks and summarize their results:
 
 ```sh
 sudo server-health-check check-all
 ```
 
-Currently this checks available APT updates (including index refresh) and reboot
-status. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
+Currently this checks available APT updates (including index refresh), reboot
+status, and unattended upgrades. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
 The summary covers only the checks performed. No email is sent.

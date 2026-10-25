@@ -25,8 +25,11 @@ Commands:
   check-apt-updates
              Refresh APT indexes and simulate apt-get upgrade. Requires root.
              Lists eligible, phased, and other held-back updates. Does not install packages.
+  check-unattended-upgrades
+             Verify the daily APT scheduler and a successful run within 48 hours.
+             Requires root. Does not run or reconfigure unattended upgrades.
   check-all  Run all implemented checks and summarize their results. Requires root.
-             Currently checks APT updates and reboot status. Does not send email.
+             Checks APT updates, reboot status, and unattended upgrades. Does not send email.
   report     Run all implemented checks and email their results. Requires root.
              Sends a report even when healthy or a check fails.
 
@@ -84,24 +87,27 @@ main() {
         '')
             show_help
             ;;
-        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-all|report)
+        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-all|report)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
             case $command_name in
-                check-reboot|check-apt-index|check-apt-updates|check-all|report)
+                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-all|report)
                     # shellcheck source=lib/checks.sh
                     source "$project_directory/lib/checks.sh" || return 1
                     # shellcheck source=lib/checks/reboot.sh
                     source "$project_directory/lib/checks/reboot.sh" || return 1
                     # shellcheck source=lib/checks/apt.sh
                     source "$project_directory/lib/checks/apt.sh" || return 1
+                    # shellcheck source=lib/checks/unattended.sh
+                    source "$project_directory/lib/checks/unattended.sh" || return 1
                     case $command_name in
                         check-reboot) run_checks check_reboot ;;
                         check-apt-index) run_checks check_apt_index ;;
                         check-apt-updates) run_checks check_apt_updates ;;
+                        check-unattended-upgrades) run_checks check_unattended_upgrades ;;
                         check-all) run_all_checks ;;
                         report)
                             # Validate configuration before running any checks.
