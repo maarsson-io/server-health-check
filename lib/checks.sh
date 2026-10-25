@@ -48,7 +48,7 @@ run_checks() {
         result=0
     fi
 
-    printf '\nSummary: %s (checks performed only)\n' "$summary"
+    printf '\nSummary: %s\n' "$summary"
     printf 'Results: %s OK, %s action required, %s failed or unknown\n' \
         "$ok_count" "$action_count" "$unknown_count"
     return "$result"

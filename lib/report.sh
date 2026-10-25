@@ -60,7 +60,7 @@ send_health_report() {
     esac
 
     subject="[$SHC_SERVER_NAME] $summary"
-    body=$(printf 'Server: %s\nDate: %s\n\n%s\n\nReport status: %s\nScope: implemented checks only.\n' \
+    body=$(printf 'Server: %s\nCheck date: %s\n\n%s\n\nReport status: %s\n' \
         "$SHC_SERVER_NAME" "$timestamp" "$findings" "$summary") || return 1
     html_body=$(format_report_html "$body" "$summary") || return 1
 
