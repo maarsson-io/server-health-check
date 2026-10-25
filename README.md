@@ -127,6 +127,10 @@ healthy or a check fails. Its subject is `[{server-name}] {STATUS}`, with `OK`,
 `ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, UTC timestamp,
 and check results. The report covers only the implemented checks.
 
+Reports include plain text and a lightly formatted HTML version: key results
+are bold, and the Summary is green for OK, red for ACTION REQUIRED, and amber
+for CHECK FAILED OR UNKNOWN. The terminal preview shows the plain-text version.
+
 After successful email acceptance (or preview), the exit code reflects the checks:
 `0` for OK, `3` for maintenance required, `1` for failed/unknown. Configuration or
 delivery failure also returns `1`.

@@ -6,6 +6,8 @@ send_mailgun_email() (
 
     local subject=$1 body=$2 escaped_key http_status curl_status reason
     local sender="Health Checker Service <$SHC_MAIL_FROM>"
+    local html_body=${3:-}
+    local -a body_options=(--form-string "text=$body")
 
     if [[ ${SHC_WITHOUT_SENDING:-false} == true ]]; then
         printf 'From: %s\nSubject: %s\n\n%s\n' "$sender" "$subject" "$body"
@@ -18,6 +20,10 @@ send_mailgun_email() (
     fi
 
     umask 077
+
+    if [[ -n $html_body ]]; then
+        body_options+=(--form-string "html=$html_body")
+    fi
 
     # Escape curl's quoted config syntax. Pass credentials through stdin so
     # the key is absent from command-line arguments and named temporary files.
@@ -39,7 +45,7 @@ send_mailgun_email() (
         --form-string "from=$sender" \
         --form-string "to=$SHC_MAIL_TO" \
         --form-string "subject=$subject" \
-        --form-string "text=$body" \
+        "${body_options[@]}" \
         --url "$SHC_MAILGUN_API_BASE_URL/v3/$SHC_MAILGUN_DOMAIN/messages" \
         2>/dev/null <<< "user = \"api:$escaped_key\"")
     curl_status=$?
