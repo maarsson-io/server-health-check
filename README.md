@@ -73,6 +73,18 @@ server health and does not need the email configuration. Exit code `0` means no
 reboot marker was found, `3` means a reboot is required, and `1` means the result
 could not be determined. The command never reboots the server.
 
+To run all implemented checks and summarize their results:
+
+```sh
+sudo server-health-check check-all
+```
+
+Currently this runs the reboot check only. Checks continue after individual
+failures. The summary lists the checks performed and counts OK, actionable, and
+failed/unknown results. A failed or unknown result takes precedence (exit `1`),
+followed by action required (exit `3`); otherwise the exit code is `0`.
+The summary covers only the checks performed. No email is sent.
+
 Application errors are also sent to the system log using `logger`, tagged
 `server-health-check`. On Ubuntu, view them with:
 
