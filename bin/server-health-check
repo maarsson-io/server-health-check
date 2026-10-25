@@ -20,12 +20,14 @@ Commands:
 
 Options:
   -h, --help Show this help message.
+  --dry-run  Print the email subject and body without sending (test-email only).
 
 Examples (from the project directory):
   ./bin/server-health-check --help
   sudo ./bin/server-health-check init
   sudo ./bin/server-health-check validate-config
   sudo ./bin/server-health-check test-email
+  sudo ./bin/server-health-check test-email --dry-run
   sudo ./bin/server-health-check check
 
 Exit codes:
@@ -38,6 +40,7 @@ HELP
 
 main() {
     local script_path project_directory
+    local dry_run=false
     # Resolve symlinks before locating the project's libraries and template.
     script_path=$(realpath -- "${BASH_SOURCE[0]}") || return 1
     project_directory=$(cd -- "$(dirname -- "$script_path")/.." && pwd -P) || return 1
@@ -59,8 +62,10 @@ main() {
                 show_help
                 return
             fi
-            if (( $# != 1 )); then
-                log_error 'this command does not accept options yet. Use --help for usage.'
+            if [[ $1 == test-email ]] && (( $# == 2 )) && [[ $2 == --dry-run ]]; then
+                dry_run=true
+            elif (( $# != 1 )); then
+                log_error 'invalid options. Use --help for usage.'
                 return 2
             fi
             if (( EUID != 0 )); then
@@ -89,7 +94,7 @@ main() {
                     else
                         # shellcheck source=lib/mailgun.sh
                         source "$project_directory/lib/mailgun.sh" || return 1
-                        send_test_email
+                        send_test_email "$dry_run"
                     fi
                     ;;
             esac

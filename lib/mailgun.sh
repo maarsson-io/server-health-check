@@ -70,9 +70,15 @@ send_mailgun_email() (
 )
 
 send_test_email() {
-    local timestamp body
+    local dry_run=${1:-false}
+    local timestamp subject body
     timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC') || return 1
+    subject="[$SHC_SERVER_NAME] Server Health: TEST EMAIL"
     body=$(printf 'Server: %s\nDate: %s\n\nServer Health Check test email.\nPurpose: verify email delivery.\nHealth checks: not run.\n' \
         "$SHC_SERVER_NAME" "$timestamp") || return 1
-    send_mailgun_email "[$SHC_SERVER_NAME] Server Health: TEST EMAIL" "$body"
+    if [[ $dry_run == true ]]; then
+        printf 'Subject: %s\n\n%s\n' "$subject" "$body"
+    else
+        send_mailgun_email "$subject" "$body"
+    fi
 }

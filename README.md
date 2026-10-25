@@ -46,7 +46,15 @@ To send a test email to the configured recipient:
 sudo server-health-check test-email
 ```
 
-This requires `curl`. Success means Mailgun accepted the message for delivery;
+To preview the same subject and body without sending:
+
+```sh
+sudo server-health-check test-email --dry-run
+```
+
+The preview uses the validated configuration and does not contact Mailgun.
+
+Actual email delivery requires `curl`. Success means Mailgun accepted the message for delivery;
 confirm arrival in the recipient inbox. Requests time out after 30 seconds and
 are not retried automatically. Credentials are passed through standard input,
 without a named temporary credentials file. API response bodies are not printed.
