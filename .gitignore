@@ -23,6 +23,7 @@
 !/lib/checks/apt.sh
 !/lib/checks/unattended.sh
 !/lib/checks/systemd.sh
+!/lib/checks/time.sh
 
 # systemd
 !/systemd/

@@ -9,8 +9,8 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, reboot, unattended-upgrades and failed-service checks, email reports, and a weekly systemd timer
-are available.
+APT update analysis, reboot, unattended-upgrades, failed-service and clock
+synchronization checks, email reports, and a weekly systemd timer are available.
 
 ## Usage
 
@@ -133,6 +133,18 @@ The query has a 15-second limit plus up to 2 seconds for cleanup, and never
 changes service state. It does not check user services or whether configured
 critical services are running.
 
+To check system clock synchronization:
+
+```sh
+sudo server-health-check check-time-sync
+```
+
+This reads the system synchronization state reported by `timedatectl`, without
+requiring a particular NTP daemon. Synchronized returns `0`, unsynchronized
+requires attention (`3`), and an unavailable or unrecognized result is unknown
+(`1`). The query has a 15-second limit plus up to 2 seconds for cleanup. It does
+not change the clock or service settings, or measure the clock offset itself.
+
 To run all implemented checks and summarize their results:
 
 ```sh
@@ -140,7 +152,8 @@ sudo server-health-check check-all
 ```
 
 Currently this checks available APT updates (including index refresh), reboot
-status, unattended upgrades, and failed services. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
+status, unattended upgrades, failed services, and time synchronization. Checks
+continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
 The summary covers only the checks performed. No email is sent.
