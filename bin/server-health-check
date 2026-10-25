@@ -26,7 +26,7 @@ Commands:
              Refresh APT indexes and simulate apt-get upgrade. Requires root.
              Lists eligible, phased, and other held-back updates. Does not install packages.
   check-unattended-upgrades
-             Verify the daily APT scheduler and a successful run within 48 hours.
+             Verify the daily APT scheduler and a successful run within 36 hours.
              Requires root. Does not run or reconfigure unattended upgrades.
   check-failed-services
              List system-wide services in failed state. Requires root.
@@ -35,7 +35,7 @@ Commands:
              Check whether the system clock is synchronized. Requires root.
              Does not change the clock or time synchronization settings.
   check-logrotate
-             Verify the logrotate timer and a successful run within 48 hours.
+             Verify the logrotate timer and a successful run within 36 hours.
              Requires root. Does not run logrotate or change its settings.
   check-all  Run all implemented checks and summarize their results. Requires root.
              Checks APT updates, reboot, unattended upgrades, failed services,

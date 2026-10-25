@@ -10,7 +10,7 @@ read_logrotate_event_time() {
     # These are system-manager events, not messages emitted by logrotate.
     # Only the numeric timestamp reaches the shell; message text is discarded.
     LC_ALL=C timeout --kill-after=2s 5s journalctl \
-        --quiet --no-pager --since=-48h --output=short-unix --lines=1 \
+        --quiet --no-pager --since=-36h --output=short-unix --lines=1 \
         _PID=1 UNIT=logrotate.service "$@" 2>/dev/null |
         LC_ALL=C awk '
             NF {
@@ -83,8 +83,8 @@ check_logrotate() {
     success_us=${success/./}; failure_us=${failure/./}; started_us=${started/./}
     for event_us in "$success_us" "$failure_us" "$started_us"; do
         [[ -z $event_us ]] && continue
-        if (( event_us > now_us || now_us - event_us > 172800000000 )); then
-            logrotate_unknown 'logrotate execution history contains timestamps outside the last 48 hours.'
+        if (( event_us > now_us || now_us - event_us > 129600000000 )); then
+            logrotate_unknown 'logrotate execution history contains timestamps outside the last 36 hours.'
             return 1
         fi
     done
@@ -96,8 +96,8 @@ check_logrotate() {
         printf 'Logrotate: ACTION REQUIRED (latest recorded execution failed; check its journal and available disk space)\n'
         return 3
     fi
-    if [[ -z $success || -z $started ]] || (( started_us > success_us || now_us - success_us > 172800000000 )); then
-        logrotate_unknown 'no completed successful logrotate run could be verified within the last 48 hours.'
+    if [[ -z $success || -z $started ]] || (( started_us > success_us || now_us - success_us > 129600000000 )); then
+        logrotate_unknown 'no completed successful logrotate run could be verified within the last 36 hours.'
         return 1
     fi
     if ! run_time=$(date -d "@$success" '+%Y-%m-%d %H:%M' 2>/dev/null); then

@@ -172,9 +172,9 @@ check_unattended_upgrades() {
         return 1
     fi
     age_ms=$((now_ms - stamp_ms))
-    if (( age_ms < 0 || now_ms - start_ms > 172800000 ||
-        age_ms > 172800000 || start_ms > last_ms || last_ms > stamp_ms )); then
-        unattended_unknown 'unattended-upgrades has no matching successful run within the last 48 hours.'
+    if (( age_ms < 0 || now_ms - start_ms > 129600000 ||
+        age_ms > 129600000 || start_ms > last_ms || last_ms > stamp_ms )); then
+        unattended_unknown 'unattended-upgrades has no matching successful run within the last 36 hours.'
         return 1
     fi
     if ! success_time=$(date -d "$stamp_before" '+%Y-%m-%d %H:%M' 2>/dev/null); then

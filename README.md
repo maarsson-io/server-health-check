@@ -110,7 +110,7 @@ sudo server-health-check check-unattended-upgrades
 
 This checks the standard Ubuntu daily APT timer and periodic settings, then
 requires both a successful APT `upgrade-stamp` and a matching completed
-unattended-upgrades log within 48 hours. A successful run with no updates counts.
+unattended-upgrades log within 36 hours. A successful run with no updates counts.
 The OK result shows the successful run time as `YYYY-MM-DD HH:MM` in the server's local timezone.
 The previous rotated log (plain or gzip) is also read when present.
 
@@ -152,7 +152,7 @@ sudo server-health-check check-logrotate
 ```
 
 This checks the standard Ubuntu logrotate timer and oneshot service, and requires
-a successful execution recorded in the system journal within 48 hours. The OK
+a successful execution recorded in the system journal within 36 hours. The OK
 result includes the completion time in the server's local timezone. A disabled
 timer or failed execution requires attention (`3`). Missing or unreadable history,
 an unsupported setup, or an unfinished run is unknown (`1`). Journal history is
