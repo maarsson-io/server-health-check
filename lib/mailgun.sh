@@ -7,7 +7,7 @@ send_mailgun_email() (
     local subject=$1 body=$2 escaped_key http_status curl_status reason
 
     if ! command -v curl >/dev/null 2>&1; then
-        printf 'Error: curl is required for email delivery.\n' >&2
+        log_error 'curl is required for email delivery.'
         return 1
     fi
 
@@ -46,7 +46,7 @@ send_mailgun_email() (
             35|60) reason='TLS connection or certificate verification failed' ;;
             *) reason='request failed' ;;
         esac
-        printf 'Error: Mailgun %s (curl exit code %s); delivery status is unknown.\n' "$reason" "$curl_status" >&2
+        log_error "Mailgun $reason (curl exit code $curl_status); delivery status is unknown."
         return 1
     fi
 
@@ -55,15 +55,15 @@ send_mailgun_email() (
             printf 'Mailgun accepted the email for delivery. Check the recipient inbox to confirm arrival.\n'
             ;;
         401|403)
-            printf 'Error: Mailgun denied the request (HTTP %s). Check the API key, domain, region, and sending permissions.\n' "$http_status" >&2
+            log_error "Mailgun denied the request (HTTP $http_status). Check the API key, domain, region, and sending permissions."
             return 1
             ;;
         [0-9][0-9][0-9])
-            printf 'Error: Mailgun returned HTTP %s; email acceptance was not confirmed.\n' "$http_status" >&2
+            log_error "Mailgun returned HTTP $http_status; email acceptance was not confirmed."
             return 1
             ;;
         *)
-            printf 'Error: no valid Mailgun HTTP status was received; delivery status is unknown.\n' >&2
+            log_error 'no valid Mailgun HTTP status was received; delivery status is unknown.'
             return 1
             ;;
     esac

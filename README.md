@@ -51,6 +51,16 @@ confirm arrival in the recipient inbox. Requests time out after 30 seconds and
 are not retried automatically. Credentials are passed through standard input,
 without a named temporary credentials file. API response bodies are not printed.
 
+Application errors are also sent to the system log using `logger`, tagged
+`server-health-check`. On Ubuntu, view them with:
+
+```sh
+sudo journalctl -t server-health-check --since today --no-pager
+```
+
+If logging fails, the error remains visible in the terminal along with a warning.
+Log retention follows the server's existing logging configuration.
+
 ## License
 
 [MIT](LICENSE)

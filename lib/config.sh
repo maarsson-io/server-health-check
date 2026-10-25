@@ -1,7 +1,7 @@
 # Configuration is parsed as data. Never source it or evaluate its contents.
 
 config_error() {
-    printf 'Error: %s\n' "$1" >&2
+    log_error "$1"
 }
 
 config_valid_domain() {

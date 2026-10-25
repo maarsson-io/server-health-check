@@ -15,6 +15,7 @@
 !/lib/init.sh
 !/lib/config.sh
 !/lib/mailgun.sh
+!/lib/logging.sh
 
 # systemd
 !/systemd/
