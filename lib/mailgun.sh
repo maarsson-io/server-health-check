@@ -83,7 +83,7 @@ send_mailgun_email() (
 
 send_test_email() {
     local timestamp subject body
-    timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC') || return 1
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S %Z (UTC%z)') || return 1
     subject="[$SHC_SERVER_NAME] TEST EMAIL"
     body=$(printf 'Server: %s\nDate: %s\n\nServer Health Check test email.\nPurpose: verify email delivery.\nHealth checks: not run.\n' \
         "$SHC_SERVER_NAME" "$timestamp") || return 1

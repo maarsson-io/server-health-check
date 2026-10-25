@@ -37,7 +37,7 @@ format_report_html() {
 send_health_report() {
     local timestamp findings check_status summary subject body html_body
 
-    if ! timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC'); then
+    if ! timestamp=$(date '+%Y-%m-%d %H:%M:%S %Z (UTC%z)'); then
         log_error 'could not determine the report timestamp.'
         return 1
     fi

@@ -124,7 +124,7 @@ sudo server-health-check report --without-sending
 The second command previews the email without sending. Both validate the email
 configuration first and run all implemented checks. A report is sent even when
 healthy or a check fails. Its subject is `[{server-name}] {STATUS}`, with `OK`,
-`ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, UTC timestamp,
+`ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, local server time (with timezone abbreviation and UTC offset),
 and check results. The report covers only the implemented checks.
 
 Reports include plain text and a lightly formatted HTML version: key results
