@@ -8,8 +8,8 @@ The tool will not install package updates or reboot servers.
 
 ## Status
 
-Early development. Configuration initialization is available; health checks and
-email delivery are not implemented yet.
+Early development. Configuration initialization and validation are available;
+health checks and email delivery are not implemented yet.
 
 ## Usage
 
@@ -18,6 +18,7 @@ From the project directory on an Ubuntu server:
 ```sh
 ./bin/server-health-check --help
 sudo ./bin/server-health-check init
+sudo ./bin/server-health-check validate-config
 ```
 
 The `init` command creates `/etc/server-health-check.conf` from the example with
@@ -33,6 +34,11 @@ sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/serve
 
 Then run `server-health-check --help` or `sudo server-health-check init` from any
 directory.
+
+After editing the configuration, run `sudo server-health-check validate-config`.
+It checks file ownership, permissions, required settings, and basic value syntax
+without printing credentials. The example API key must be replaced. Successful
+validation does not verify Mailgun credentials or email delivery.
 
 ## License
 

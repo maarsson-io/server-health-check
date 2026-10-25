@@ -4,6 +4,7 @@
 # Format: one KEY=value per line. All settings below are required.
 # Values are literal: do not add quotes, inline comments, or shell expressions.
 # Blank lines and lines starting with # are ignored.
+# Use LF line endings, unique keys, and no surrounding whitespace in values.
 
 # Server name shown in the report and email subject.
 SERVER_NAME=example-server
