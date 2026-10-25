@@ -48,8 +48,10 @@ main() {
                 return 1
             fi
 
-            local project_directory
-            project_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P) || return 1
+            local script_path project_directory
+            # Resolve symlinks before locating the project's libraries and template.
+            script_path=$(realpath -e -- "${BASH_SOURCE[0]}") || return 1
+            project_directory=$(cd -- "$(dirname -- "$script_path")/.." && pwd -P) || return 1
 
             # Load application code only; configuration files are never sourced.
             # shellcheck source=lib/init.sh

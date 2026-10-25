@@ -25,6 +25,15 @@ root-only access. If the path already exists, it stops without changing it.
 Edit the created file to set your server name and email credentials. Keep real
 credentials outside the repository.
 
+For a project installed at `/opt/server-health-check`, create a command shortcut:
+
+```sh
+sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/server-health-check
+```
+
+Then run `server-health-check --help` or `sudo server-health-check init` from any
+directory.
+
 ## License
 
 [MIT](LICENSE)
