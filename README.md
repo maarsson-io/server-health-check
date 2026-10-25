@@ -9,8 +9,8 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT index refresh, and reboot checks are available. Available-package analysis
-and scheduled reports are not implemented yet.
+APT update analysis, and reboot checks are available. Scheduled reports are not
+implemented yet.
 
 ## Usage
 
@@ -85,7 +85,21 @@ produce an unknown/failed result. Existing APT processes are left alone. The
 refresh has a 120-second limit, with up to 5 additional seconds for forced cleanup.
 Raw APT output is not printed or logged because it may contain private repository
 URLs; errors include an exit code. Run `sudo apt-get update --error-on=any` manually
-on the server if detailed diagnostics are needed. Available updates are not counted yet.
+on the server if detailed diagnostics are needed. This command only refreshes indexes.
+
+To check available updates without installing packages:
+
+```sh
+sudo server-health-check check-apt-updates
+```
+
+This refreshes indexes first, then simulates `apt-get upgrade` with a 60-second
+limit (plus up to 5 seconds for cleanup). It lists eligible upgrades with versions,
+phased updates, and packages kept back for other reasons. Holds and phasing are
+respected. Eligible upgrades and other held-back packages require maintenance
+review (exit `3`); phased updates alone do not (exit `0`). A failed refresh or
+simulation, or an unrecognized result, is unknown (exit `1`). This does not assess
+whether unattended upgrades will install a package automatically.
 
 To run all implemented checks and summarize their results:
 
@@ -93,8 +107,8 @@ To run all implemented checks and summarize their results:
 sudo server-health-check check-all
 ```
 
-Currently this refreshes APT indexes and checks reboot status. Checks continue after individual
-failures. The summary lists the checks performed and counts OK, actionable, and
+Currently this checks available APT updates (including index refresh) and reboot
+status. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
 The summary covers only the checks performed. No email is sent.

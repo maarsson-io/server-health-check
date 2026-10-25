@@ -55,5 +55,5 @@ run_checks() {
 
 run_all_checks() {
     # Extend this explicit list as additional checks are implemented.
-    run_checks check_apt_index check_reboot
+    run_checks check_apt_updates check_reboot
 }
