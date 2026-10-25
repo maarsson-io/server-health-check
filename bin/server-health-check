@@ -34,9 +34,12 @@ Commands:
   check-time-sync
              Check whether the system clock is synchronized. Requires root.
              Does not change the clock or time synchronization settings.
+  check-logrotate
+             Verify the logrotate timer and a successful run within 48 hours.
+             Requires root. Does not run logrotate or change its settings.
   check-all  Run all implemented checks and summarize their results. Requires root.
              Checks APT updates, reboot, unattended upgrades, failed services,
-             and time synchronization. Does not send email.
+             time synchronization, and logrotate. Does not send email.
   report     Run all implemented checks and email their results. Requires root.
              Sends a report even when healthy or a check fails.
 
@@ -94,14 +97,14 @@ main() {
         '')
             show_help
             ;;
-        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-all|report)
+        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-logrotate|check-all|report)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
             case $command_name in
-                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-all|report)
+                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-logrotate|check-all|report)
                     # shellcheck source=lib/checks.sh
                     source "$project_directory/lib/checks.sh" || return 1
                     # shellcheck source=lib/checks/reboot.sh
@@ -114,6 +117,8 @@ main() {
                     source "$project_directory/lib/checks/systemd.sh" || return 1
                     # shellcheck source=lib/checks/time.sh
                     source "$project_directory/lib/checks/time.sh" || return 1
+                    # shellcheck source=lib/checks/logrotate.sh
+                    source "$project_directory/lib/checks/logrotate.sh" || return 1
                     case $command_name in
                         check-reboot) run_checks check_reboot ;;
                         check-apt-index) run_checks check_apt_index ;;
@@ -121,6 +126,7 @@ main() {
                         check-unattended-upgrades) run_checks check_unattended_upgrades ;;
                         check-failed-services) run_checks check_failed_services ;;
                         check-time-sync) run_checks check_time_sync ;;
+                        check-logrotate) run_checks check_logrotate ;;
                         check-all) run_all_checks ;;
                         report)
                             # Validate configuration before running any checks.

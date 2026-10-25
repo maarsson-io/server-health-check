@@ -24,6 +24,7 @@
 !/lib/checks/unattended.sh
 !/lib/checks/systemd.sh
 !/lib/checks/time.sh
+!/lib/checks/logrotate.sh
 
 # systemd
 !/systemd/

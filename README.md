@@ -10,7 +10,7 @@ The tool will not install package updates or reboot servers.
 
 Early development. Configuration initialization, validation, test email delivery,
 APT update analysis, reboot, unattended-upgrades, failed-service and clock
-synchronization checks, email reports, and a weekly systemd timer are available.
+synchronization and logrotate checks, email reports, and a weekly systemd timer are available.
 
 ## Usage
 
@@ -145,6 +145,21 @@ requires attention (`3`), and an unavailable or unrecognized result is unknown
 (`1`). The query has a 15-second limit plus up to 2 seconds for cleanup. It does
 not change the clock or service settings, or measure the clock offset itself.
 
+To verify recent logrotate execution without rotating logs:
+
+```sh
+sudo server-health-check check-logrotate
+```
+
+This checks the standard Ubuntu logrotate timer and oneshot service, and requires
+a successful execution recorded in the system journal within 48 hours. The OK
+result includes the completion time in the server's local timezone. A disabled
+timer or failed execution requires attention (`3`). Missing or unreadable history,
+an unsupported setup, or an unfinished run is unknown (`1`). Journal history is
+checked across boots when retained; an enabled timer alone does not prove success.
+Each systemd/journal query has a five-second limit plus up to two seconds for
+cleanup. The check never runs logrotate, rotates files, or changes services.
+
 To run all implemented checks and summarize their results:
 
 ```sh
@@ -152,7 +167,7 @@ sudo server-health-check check-all
 ```
 
 Currently this checks available APT updates (including index refresh), reboot
-status, unattended upgrades, failed services, and time synchronization. Checks
+status, unattended upgrades, failed services, time synchronization, and logrotate. Checks
 continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
