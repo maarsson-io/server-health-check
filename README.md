@@ -9,7 +9,8 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-and reboot checks are available. APT checks and scheduled reports are not implemented yet.
+APT index refresh, and reboot checks are available. Available-package analysis
+and scheduled reports are not implemented yet.
 
 ## Usage
 
@@ -73,13 +74,26 @@ server health and does not need the email configuration. Exit code `0` means no
 reboot marker was found, `3` means a reboot is required, and `1` means the result
 could not be determined. The command never reboots the server.
 
+To refresh APT package indexes without installing packages:
+
+```sh
+sudo server-health-check check-apt-index
+```
+
+Repository failures (including partial failures), lock conflicts, and timeouts
+produce an unknown/failed result. Existing APT processes are left alone. The
+refresh has a 120-second limit, with up to 5 additional seconds for forced cleanup.
+Raw APT output is not printed or logged because it may contain private repository
+URLs; errors include an exit code. Run `sudo apt-get update --error-on=any` manually
+on the server if detailed diagnostics are needed. Available updates are not counted yet.
+
 To run all implemented checks and summarize their results:
 
 ```sh
 sudo server-health-check check-all
 ```
 
-Currently this runs the reboot check only. Checks continue after individual
+Currently this refreshes APT indexes and checks reboot status. Checks continue after individual
 failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.

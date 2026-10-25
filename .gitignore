@@ -19,6 +19,7 @@
 !/lib/checks.sh
 !/lib/checks/
 !/lib/checks/reboot.sh
+!/lib/checks/apt.sh
 
 # systemd
 !/systemd/
