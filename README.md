@@ -186,9 +186,12 @@ healthy or a check fails. Its subject is `[{server-name}] {STATUS}`, with `OK`,
 `ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, local server time (with timezone abbreviation and UTC offset),
 and check results. The report covers only the implemented checks.
 
-Reports include plain text and a lightly formatted HTML version: key results
-are bold, and the Summary is green for OK, red for ACTION REQUIRED, and amber
-for CHECK FAILED OR UNKNOWN. The terminal preview shows the plain-text version.
+Reports include plain text and a responsive HTML version with a status badge,
+result counts, a check overview, and details grouped by check. APT package lists
+separate eligible, phased, and other held-back updates. Status colors are green
+for OK, red for ACTION REQUIRED, and amber for CHECK FAILED OR UNKNOWN. Both
+formats use the same collected check results. The terminal preview shows the
+plain-text version. Keep `templates/report.html` with the installed project.
 
 After successful email acceptance (or preview), the exit code reflects the checks:
 `0` for OK, `3` for maintenance required, `1` for failed/unknown. Configuration or

@@ -18,6 +18,7 @@
 !/lib/logging.sh
 !/lib/checks.sh
 !/lib/report.sh
+!/lib/report-html.sh
 !/lib/checks/
 !/lib/checks/reboot.sh
 !/lib/checks/apt.sh
@@ -34,3 +35,7 @@
 # Configuration templates
 !/config/
 !/config/config.example
+
+# Email templates
+!/templates/
+!/templates/report.html

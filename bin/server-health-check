@@ -135,6 +135,8 @@ main() {
                             load_config /etc/server-health-check.conf || return 1
                             # shellcheck source=lib/mailgun.sh
                             source "$project_directory/lib/mailgun.sh" || return 1
+                            # shellcheck source=lib/report-html.sh
+                            source "$project_directory/lib/report-html.sh" || return 1
                             # shellcheck source=lib/report.sh
                             source "$project_directory/lib/report.sh" || return 1
                             send_health_report

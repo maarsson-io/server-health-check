@@ -1,56 +1,97 @@
-# Checks print their findings and return 0 (OK), 3 (action required), or
-# 1 (failed/unknown). Only application-defined check functions are passed here.
+# Checks print findings and return 0 (OK), 3 (action required), or 1 (unknown).
+# Keep stdout and normalized exit status together for both report formats.
 
-run_checks() {
-    local check_function result summary separator=' '
-    local ok_count=0 action_count=0 unknown_count=0
+collect_checks() {
+    local check_function output result
+    local print_findings=false
+    if [[ ${1:-} == --print-findings ]]; then
+        print_findings=true
+        shift
+    fi
+    SHC_CHECK_NAMES=()
+    SHC_CHECK_OUTPUTS=()
+    SHC_CHECK_RESULTS=()
+    SHC_OK_COUNT=0
+    SHC_ACTION_COUNT=0
+    SHC_UNKNOWN_COUNT=0
+    SHC_CHECK_SUMMARY='CHECK FAILED OR UNKNOWN'
 
     if (( $# == 0 )); then
         log_error 'no checks were selected.'
         return 1
     fi
 
-    printf 'Checks performed:'
     for check_function in "$@"; do
-        printf '%s%s' "$separator" "${check_function#check_}"
-        separator=', '
-    done
-    printf '\n\n'
-
-    for check_function in "$@"; do
-        # Isolate each check so an exit or shell-state change cannot stop later checks.
-        if ( "$check_function" ); then
+        # Command substitution isolates exit/shell state while preserving stderr.
+        if output=$("$check_function"); then
             result=0
         else
             result=$?
         fi
-
         case $result in
-            0) ok_count=$((ok_count + 1)) ;;
-            3) action_count=$((action_count + 1)) ;;
-            1) unknown_count=$((unknown_count + 1)) ;;
+            0) SHC_OK_COUNT=$((SHC_OK_COUNT + 1)) ;;
+            3) SHC_ACTION_COUNT=$((SHC_ACTION_COUNT + 1)) ;;
             *)
-                unknown_count=$((unknown_count + 1))
-                log_error "check ${check_function#check_} returned unexpected exit code $result."
+                SHC_UNKNOWN_COUNT=$((SHC_UNKNOWN_COUNT + 1))
+                if (( result != 1 )); then
+                    log_error "check ${check_function#check_} returned unexpected exit code $result."
+                fi
+                result=1
                 ;;
         esac
+        SHC_CHECK_NAMES+=("${check_function#check_}")
+        SHC_CHECK_OUTPUTS+=("$output")
+        SHC_CHECK_RESULTS+=("$result")
+        if [[ $print_findings == true && -n $output ]]; then
+            printf '%s\n' "$output"
+        fi
     done
 
-    # An incomplete result takes precedence over maintenance findings.
-    if (( unknown_count > 0 )); then
-        summary='CHECK FAILED OR UNKNOWN'
-        result=1
-    elif (( action_count > 0 )); then
-        summary='ACTION REQUIRED'
-        result=3
-    else
-        summary='OK'
-        result=0
+    if (( SHC_UNKNOWN_COUNT > 0 )); then
+        return 1
+    elif (( SHC_ACTION_COUNT > 0 )); then
+        SHC_CHECK_SUMMARY='ACTION REQUIRED'
+        return 3
     fi
+    SHC_CHECK_SUMMARY='OK'
+}
 
-    printf '\nSummary: %s\n' "$summary"
+format_check_header() {
+    local name separator=' '
+    printf 'Checks performed:'
+    for name in "$@"; do
+        printf '%s%s' "$separator" "${name#check_}"
+        separator=', '
+    done
+    printf '\n\n'
+}
+
+format_check_summary() {
+    printf '\nSummary: %s\n' "$SHC_CHECK_SUMMARY"
     printf 'Results: %s OK, %s action required, %s failed or unknown\n' \
-        "$ok_count" "$action_count" "$unknown_count"
+        "$SHC_OK_COUNT" "$SHC_ACTION_COUNT" "$SHC_UNKNOWN_COUNT"
+}
+
+format_check_results() {
+    local name output
+    local -a functions=()
+    for name in "${SHC_CHECK_NAMES[@]}"; do functions+=("check_$name"); done
+    format_check_header "${functions[@]}"
+    for output in "${SHC_CHECK_OUTPUTS[@]}"; do
+        [[ -z $output ]] || printf '%s\n' "$output"
+    done
+    format_check_summary
+}
+
+run_checks() {
+    local result
+    if (( $# == 0 )); then
+        collect_checks
+        return 1
+    fi
+    format_check_header "$@" || return 1
+    if collect_checks --print-findings "$@"; then result=0; else result=$?; fi
+    format_check_summary || return 1
     return "$result"
 }
 
