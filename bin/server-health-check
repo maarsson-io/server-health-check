@@ -20,7 +20,9 @@ Commands:
 
 Options:
   -h, --help Show this help message.
-  --dry-run  Print the email subject and body without sending (test-email only).
+  --without-sending
+             Print email subjects and bodies instead of sending.
+             Other command actions still run.
 
 Exit codes:
   0  Success; no action required for the checks performed.
@@ -32,7 +34,9 @@ HELP
 
 main() {
     local script_path project_directory
-    local dry_run=false
+    local command_name='' argument
+    # Runtime mode shared by every email delivery call.
+    SHC_WITHOUT_SENDING=false
     # Resolve symlinks before locating the project's libraries and template.
     script_path=$(realpath -- "${BASH_SOURCE[0]}") || return 1
     project_directory=$(cd -- "$(dirname -- "$script_path")/.." && pwd -P) || return 1
@@ -41,31 +45,40 @@ main() {
     # shellcheck source=lib/logging.sh
     source "$project_directory/lib/logging.sh" || return 1
 
-    case "${1:-}" in
-        ''|-h|--help)
-            if (( $# > 1 )); then
-                log_error 'unexpected arguments. Use --help for usage.'
+    for argument in "$@"; do
+        case $argument in
+            --without-sending)
+                SHC_WITHOUT_SENDING=true
+                ;;
+            -h|--help)
+                show_help
+                return
+                ;;
+            -*)
+                log_error 'invalid options. Use --help for usage.'
                 return 2
-            fi
+                ;;
+            *)
+                if [[ -n $command_name || -z $argument ]]; then
+                    log_error 'expected one command. Use --help for usage.'
+                    return 2
+                fi
+                command_name=$argument
+                ;;
+        esac
+    done
+
+    case $command_name in
+        '')
             show_help
             ;;
         init|validate-config|test-email|check)
-            if (( $# == 2 )) && [[ $2 == -h || $2 == --help ]]; then
-                show_help
-                return
-            fi
-            if [[ $1 == test-email ]] && (( $# == 2 )) && [[ $2 == --dry-run ]]; then
-                dry_run=true
-            elif (( $# != 1 )); then
-                log_error 'invalid options. Use --help for usage.'
-                return 2
-            fi
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
-            case "$1" in
+            case $command_name in
                 check)
                     # shellcheck source=lib/checks/reboot.sh
                     source "$project_directory/lib/checks/reboot.sh" || return 1
@@ -81,12 +94,12 @@ main() {
                     # shellcheck source=lib/config.sh
                     source "$project_directory/lib/config.sh" || return 1
                     load_config /etc/server-health-check.conf || return 1
-                    if [[ $1 == validate-config ]]; then
+                    if [[ $command_name == validate-config ]]; then
                         printf 'Configuration is valid.\n'
                     else
                         # shellcheck source=lib/mailgun.sh
                         source "$project_directory/lib/mailgun.sh" || return 1
-                        send_test_email "$dry_run"
+                        send_test_email
                     fi
                     ;;
             esac

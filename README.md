@@ -49,10 +49,13 @@ sudo server-health-check test-email
 To preview the same subject and body without sending:
 
 ```sh
-sudo server-health-check test-email --dry-run
+sudo server-health-check test-email --without-sending
 ```
 
-The preview uses the validated configuration and does not contact Mailgun.
+`--without-sending` is a shared email-delivery option, accepted before or after the
+command. It displays each email's subject and body instead of contacting Mailgun.
+All other command actions still run, including configuration validation and health
+checks. It does not prevent `init` from creating a configuration file.
 
 Actual email delivery requires `curl`. Success means Mailgun accepted the message for delivery;
 confirm arrival in the recipient inbox. Requests time out after 30 seconds and
