@@ -9,8 +9,8 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, reboot checks, and manual email reports are available. Scheduled reports are not
-implemented yet.
+APT update analysis, reboot checks, email reports, and a weekly systemd timer
+are available.
 
 ## Usage
 
@@ -129,7 +129,52 @@ and check results. The report covers only the implemented checks.
 
 After successful email acceptance (or preview), the exit code reflects the checks:
 `0` for OK, `3` for maintenance required, `1` for failed/unknown. Configuration or
-delivery failure also returns `1`. Weekly scheduling is not implemented yet.
+delivery failure also returns `1`.
+
+## Weekly scheduling
+
+Install the project at `/opt/server-health-check`. On production servers, keep
+the project owned by root and not writable by other users: the service runs it
+as root. Validate the configuration and test a manual report before enabling
+the timer.
+
+From the project directory:
+
+```sh
+sudo install -o root -g root -m 0644 systemd/server-health-check.service systemd/server-health-check.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now server-health-check.timer
+systemctl list-timers --all server-health-check.timer
+```
+
+The timer runs every Sunday at 04:30 in the server's local timezone, with up to
+one minute of scheduling tolerance. Check the timezone with `timedatectl`.
+After downtime, a missed schedule triggers one current report when the timer
+starts; this may also happen on first activation. It does not replay every
+missed week. Failed reports are not retried automatically.
+
+The service has a five-minute time limit, followed by up to ten seconds for
+termination. systemd prevents overlapping executions of this service; separate
+direct CLI invocations are not covered by this protection. Exit `3` is accepted
+as a completed run with maintenance findings, while exit `1` marks the service
+as failed. A service timeout may prevent email delivery.
+
+To run the scheduled service manually (sends email) and inspect its logs:
+
+```sh
+sudo systemctl start server-health-check.service
+systemctl status server-health-check.service
+sudo journalctl -u server-health-check.service --since today --no-pager
+```
+
+An inactive service after a successful run is normal: it runs once and exits.
+To disable future scheduled runs:
+
+```sh
+sudo systemctl disable --now server-health-check.timer
+```
+
+Disabling the timer does not stop a report that is already running.
 
 Application errors are also sent to the system log using `logger`, tagged
 `server-health-check`. On Ubuntu, view them with:
