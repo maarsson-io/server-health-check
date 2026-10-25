@@ -9,7 +9,7 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, reboot and unattended-upgrades checks, email reports, and a weekly systemd timer
+APT update analysis, reboot, unattended-upgrades and failed-service checks, email reports, and a weekly systemd timer
 are available.
 
 ## Usage
@@ -120,6 +120,19 @@ Missing, stale, unreadable, inconsistent, or unrecognized evidence is unknown
 schedulers or log locations are not verified by this initial implementation.
 The check does not change settings or audit the allowed security-update origins.
 
+To list failed system-wide systemd services:
+
+```sh
+sudo server-health-check check-failed-services
+```
+
+No failed services returns `0`. Failed services (including failed oneshot services)
+are listed for journal review and return `3`. Inactive or disabled services are
+not failures on their own. A failed or unrecognized query returns unknown (`1`).
+The query has a 15-second limit plus up to 2 seconds for cleanup, and never
+changes service state. It does not check user services or whether configured
+critical services are running.
+
 To run all implemented checks and summarize their results:
 
 ```sh
@@ -127,7 +140,7 @@ sudo server-health-check check-all
 ```
 
 Currently this checks available APT updates (including index refresh), reboot
-status, and unattended upgrades. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
+status, unattended upgrades, and failed services. Checks continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
 The summary covers only the checks performed. No email is sent.

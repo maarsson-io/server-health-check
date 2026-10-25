@@ -25,7 +25,8 @@ format_report_html() {
                 ;;
             'Server: '*|'Available updates: '*|'Eligible for apt-get upgrade: '*|\
             'Deferred due to phasing: '*|'Kept back for other reasons: '*|\
-            'APT package index refresh: '*|'Reboot required: '*|'Unattended upgrades: '*|'Report status: '*)
+            'APT package index refresh: '*|'Reboot required: '*|'Unattended upgrades: '*|\
+            'Failed systemd services: '*|'Report status: '*)
                 printf '<div><strong>%s</strong></div>\n' "$escaped"
                 ;;
             *) printf '<div>%s</div>\n' "$escaped" ;;
