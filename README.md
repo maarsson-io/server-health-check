@@ -9,7 +9,7 @@ The tool will not install package updates or reboot servers.
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, and reboot checks are available. Scheduled reports are not
+APT update analysis, reboot checks, and manual email reports are available. Scheduled reports are not
 implemented yet.
 
 ## Usage
@@ -58,6 +58,7 @@ command. It displays each email's subject and body instead of contacting Mailgun
 All other command actions still run, including configuration validation and health
 checks. It does not prevent `init-config` from creating a configuration file.
 
+Emails use the sender name `Health Checker Service` and the address in `MAIL_FROM`.
 Actual email delivery requires `curl`. Success means Mailgun accepted the message for delivery;
 confirm arrival in the recipient inbox. Requests time out after 30 seconds and
 are not retried automatically. Credentials are passed through standard input,
@@ -112,6 +113,23 @@ status. Checks continue after individual failures. The summary lists the checks 
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.
 The summary covers only the checks performed. No email is sent.
+
+To run the same checks and email their results:
+
+```sh
+sudo server-health-check report
+sudo server-health-check report --without-sending
+```
+
+The second command previews the email without sending. Both validate the email
+configuration first and run all implemented checks. A report is sent even when
+healthy or a check fails. Its subject is `[{server-name}] {STATUS}`, with `OK`,
+`ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, UTC timestamp,
+and check results. The report covers only the implemented checks.
+
+After successful email acceptance (or preview), the exit code reflects the checks:
+`0` for OK, `3` for maintenance required, `1` for failed/unknown. Configuration or
+delivery failure also returns `1`. Weekly scheduling is not implemented yet.
 
 Application errors are also sent to the system log using `logger`, tagged
 `server-health-check`. On Ubuntu, view them with:

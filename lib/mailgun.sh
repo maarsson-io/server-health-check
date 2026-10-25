@@ -5,9 +5,10 @@ send_mailgun_email() (
     set +v
 
     local subject=$1 body=$2 escaped_key http_status curl_status reason
+    local sender="Health Checker Service <$SHC_MAIL_FROM>"
 
     if [[ ${SHC_WITHOUT_SENDING:-false} == true ]]; then
-        printf 'Subject: %s\n\n%s\n' "$subject" "$body"
+        printf 'From: %s\nSubject: %s\n\n%s\n' "$sender" "$subject" "$body"
         return
     fi
 
@@ -35,7 +36,7 @@ send_mailgun_email() (
         --retry 0 \
         --output /dev/null \
         --write-out '%{http_code}' \
-        --form-string "from=$SHC_MAIL_FROM" \
+        --form-string "from=$sender" \
         --form-string "to=$SHC_MAIL_TO" \
         --form-string "subject=$subject" \
         --form-string "text=$body" \
@@ -77,7 +78,7 @@ send_mailgun_email() (
 send_test_email() {
     local timestamp subject body
     timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC') || return 1
-    subject="[$SHC_SERVER_NAME] Server Health: TEST EMAIL"
+    subject="[$SHC_SERVER_NAME] TEST EMAIL"
     body=$(printf 'Server: %s\nDate: %s\n\nServer Health Check test email.\nPurpose: verify email delivery.\nHealth checks: not run.\n' \
         "$SHC_SERVER_NAME" "$timestamp") || return 1
     send_mailgun_email "$subject" "$body"

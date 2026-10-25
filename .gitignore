@@ -17,6 +17,7 @@
 !/lib/mailgun.sh
 !/lib/logging.sh
 !/lib/checks.sh
+!/lib/report.sh
 !/lib/checks/
 !/lib/checks/reboot.sh
 !/lib/checks/apt.sh
