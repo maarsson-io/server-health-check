@@ -1,0 +1,21 @@
+# Example only. Keep real credentials outside the repository.
+# Runtime location: /etc/server-health-check.conf (root:root, mode 0600).
+#
+# Format: one KEY=value per line. All settings below are required.
+# Values are literal: do not add quotes, inline comments, or shell expressions.
+# Blank lines and lines starting with # are ignored.
+
+# Server name shown in the report and email subject.
+SERVER_NAME=example-server
+
+# Use the region where your Mailgun sending domain is configured:
+# US: https://api.mailgun.net
+# EU: https://api.eu.mailgun.net
+# Reference: https://documentation.mailgun.com/docs/mailgun/api-reference/api-overview
+MAILGUN_API_BASE_URL=https://api.mailgun.net
+MAILGUN_DOMAIN=mg.example.com
+MAILGUN_API_KEY=replace-with-your-mailgun-api-key
+
+# Sender and recipient email addresses.
+MAIL_FROM=server-health@mg.example.com
+MAIL_TO=admin@example.com
