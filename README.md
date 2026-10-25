@@ -8,8 +8,8 @@ The tool will not install package updates or reboot servers.
 
 ## Status
 
-Early development. Configuration initialization, validation, and test email
-delivery are available. Health checks and scheduled reports are not implemented yet.
+Early development. Configuration initialization, validation, test email delivery,
+and reboot checks are available. APT checks and scheduled reports are not implemented yet.
 
 ## Usage
 
@@ -50,6 +50,17 @@ This requires `curl`. Success means Mailgun accepted the message for delivery;
 confirm arrival in the recipient inbox. Requests time out after 30 seconds and
 are not retried automatically. Credentials are passed through standard input,
 without a named temporary credentials file. API response bodies are not printed.
+
+To check reboot status without sending email:
+
+```sh
+sudo server-health-check check
+```
+
+Currently this checks only `/run/reboot-required`; it does not assess overall
+server health and does not need the email configuration. Exit code `0` means no
+reboot marker was found, `3` means a reboot is required, and `1` means the result
+could not be determined. The command never reboots the server.
 
 Application errors are also sent to the system log using `logger`, tagged
 `server-health-check`. On Ubuntu, view them with:

@@ -16,6 +16,8 @@
 !/lib/config.sh
 !/lib/mailgun.sh
 !/lib/logging.sh
+!/lib/checks/
+!/lib/checks/reboot.sh
 
 # systemd
 !/systemd/

@@ -15,6 +15,8 @@ Commands:
              Requires root. Does not modify files or send email.
   test-email Send a test email using the configured Mailgun account.
              Requires root. Does not run health checks.
+  check      Check reboot status and print the result. Requires root.
+             Currently checks only the reboot-required marker. Does not send email.
 
 Options:
   -h, --help Show this help message.
@@ -24,11 +26,13 @@ Examples (from the project directory):
   sudo ./bin/server-health-check init
   sudo ./bin/server-health-check validate-config
   sudo ./bin/server-health-check test-email
+  sudo ./bin/server-health-check check
 
 Exit codes:
-  0  Success.
-  1  Operation failed (including an existing configuration or insufficient privileges).
+  0  Success; no action required for the checks performed.
+  1  Operation failed or check result unknown.
   2  Invalid command or options.
+  3  Check completed; maintenance action required.
 HELP
 }
 
@@ -50,7 +54,7 @@ main() {
             fi
             show_help
             ;;
-        init|validate-config|test-email)
+        init|validate-config|test-email|check)
             if (( $# == 2 )) && [[ $2 == -h || $2 == --help ]]; then
                 show_help
                 return
@@ -65,6 +69,12 @@ main() {
             fi
 
             case "$1" in
+                check)
+                    # shellcheck source=lib/checks/reboot.sh
+                    source "$project_directory/lib/checks/reboot.sh" || return 1
+                    printf 'Checks performed: reboot status only\n'
+                    check_reboot
+                    ;;
                 init)
                     # shellcheck source=lib/init.sh
                     source "$project_directory/lib/init.sh" || return 1
