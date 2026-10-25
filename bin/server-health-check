@@ -22,14 +22,6 @@ Options:
   -h, --help Show this help message.
   --dry-run  Print the email subject and body without sending (test-email only).
 
-Examples (from the project directory):
-  ./bin/server-health-check --help
-  sudo ./bin/server-health-check init
-  sudo ./bin/server-health-check validate-config
-  sudo ./bin/server-health-check test-email
-  sudo ./bin/server-health-check test-email --dry-run
-  sudo ./bin/server-health-check check
-
 Exit codes:
   0  Success; no action required for the checks performed.
   1  Operation failed or check result unknown.
