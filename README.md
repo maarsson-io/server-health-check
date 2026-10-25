@@ -8,8 +8,8 @@ The tool will not install package updates or reboot servers.
 
 ## Status
 
-Early development. Configuration initialization and validation are available;
-health checks and email delivery are not implemented yet.
+Early development. Configuration initialization, validation, and test email
+delivery are available. Health checks and scheduled reports are not implemented yet.
 
 ## Usage
 
@@ -39,6 +39,17 @@ After editing the configuration, run `sudo server-health-check validate-config`.
 It checks file ownership, permissions, required settings, and basic value syntax
 without printing credentials. The example API key must be replaced. Successful
 validation does not verify Mailgun credentials or email delivery.
+
+To send a test email to the configured recipient:
+
+```sh
+sudo server-health-check test-email
+```
+
+This requires `curl`. Success means Mailgun accepted the message for delivery;
+confirm arrival in the recipient inbox. Requests time out after 30 seconds and
+are not retried automatically. Credentials are passed through standard input,
+without a named temporary credentials file. API response bodies are not printed.
 
 ## License
 

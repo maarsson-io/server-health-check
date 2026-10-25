@@ -13,6 +13,8 @@ Commands:
   validate-config
              Check configuration ownership, permissions, and values.
              Requires root. Does not modify files or send email.
+  test-email Send a test email using the configured Mailgun account.
+             Requires root. Does not run health checks.
 
 Options:
   -h, --help Show this help message.
@@ -21,6 +23,7 @@ Examples (from the project directory):
   ./bin/server-health-check --help
   sudo ./bin/server-health-check init
   sudo ./bin/server-health-check validate-config
+  sudo ./bin/server-health-check test-email
 
 Exit codes:
   0  Success.
@@ -38,7 +41,7 @@ main() {
             fi
             show_help
             ;;
-        init|validate-config)
+        init|validate-config|test-email)
             if (( $# == 2 )) && [[ $2 == -h || $2 == --help ]]; then
                 show_help
                 return
@@ -64,11 +67,17 @@ main() {
                     source "$project_directory/lib/init.sh" || return 1
                     init_config "$project_directory/config/config.example" /etc/server-health-check.conf
                     ;;
-                validate-config)
+                validate-config|test-email)
                     # shellcheck source=lib/config.sh
                     source "$project_directory/lib/config.sh" || return 1
                     load_config /etc/server-health-check.conf || return 1
-                    printf 'Configuration is valid.\n'
+                    if [[ $1 == validate-config ]]; then
+                        printf 'Configuration is valid.\n'
+                    else
+                        # shellcheck source=lib/mailgun.sh
+                        source "$project_directory/lib/mailgun.sh" || return 1
+                        send_test_email
+                    fi
                     ;;
             esac
             ;;
