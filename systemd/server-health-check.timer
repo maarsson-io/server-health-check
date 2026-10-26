@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly Server Health Check report
+
+[Timer]
+# Uses the server's local timezone.
+OnCalendar=Sun *-*-* 04:30:00
+AccuracySec=1min
+# After downtime, run one current report instead of replaying missed weeks.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

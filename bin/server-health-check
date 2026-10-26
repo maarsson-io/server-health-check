@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+show_help() {
+    cat <<'HELP'
+Usage: server-health-check <command> [options]
+
+Commands:
+  init-config
+             Create configuration or append missing settings from the example.
+             Requires root. Existing values are preserved.
+  self-update
+             Fast-forward the current Git branch from its configured upstream,
+             then run the updated init-config command. Requires root.
+  validate-config
+             Check configuration ownership, permissions, and values.
+             Requires root. Does not modify files or send email.
+  test-email Send a test email using the configured Mailgun account.
+             Requires root. Does not run health checks.
+  check-reboot
+             Check reboot status and print the result. Requires root.
+             Currently checks only the reboot-required marker. Does not send email.
+  check-apt-index
+             Refresh APT package indexes with a time limit. Requires root.
+             Does not install packages or count available updates.
+  check-apt-updates
+             Refresh APT indexes and simulate apt-get upgrade. Requires root.
+             Lists eligible, phased, on-hold, and other held-back updates.
+             Does not install packages.
+  check-unattended-upgrades
+             Verify the daily APT scheduler and a successful run within 36 hours.
+             Requires root. Does not run or reconfigure unattended upgrades.
+  check-failed-services
+             List system-wide services in failed state. Requires root.
+             Does not start, stop, or reset services.
+  check-git-up-to-date
+             Compare the current commit with the live upstream Git branch.
+             Requires root. Does not fetch, update code, or change configuration.
+  check-critical-services
+             Verify configured critical services are running or sockets are listening.
+             Requires root. Does not change service state.
+  check-ubuntu-eol
+             Check Ubuntu standard support; warn at 90 days or less remaining.
+             Requires root. Uses local distro-info data; does not upgrade Ubuntu.
+  check-time-sync
+             Check whether the system clock is synchronized. Requires root.
+             Does not change the clock or time synchronization settings.
+  check-logrotate
+             Verify the logrotate timer and a successful run within 36 hours.
+             Requires root. Does not run logrotate or change its settings.
+  check-redis-persistence
+             Check configured Redis RDB/AOF persistence status. Requires root.
+             Reads configuration; does not trigger saves or change Redis settings.
+  check-listening-interfaces
+             Check enabled MySQL/Redis TCP listeners against allowed addresses.
+             Requires root. Does not change bindings, firewall rules, or services.
+  check-all  Run all implemented checks and summarize their results. Requires root.
+             Checks APT updates, reboot, unattended upgrades, failed services,
+             time synchronization, logrotate, Redis persistence, configured listeners,
+             critical services, Ubuntu support, and the project Git version.
+             Does not send email.
+  report     Run all implemented checks and email their results. Requires root.
+             Sends a report even when healthy or a check fails.
+
+Options:
+  -h, --help Show this help message.
+  --without-sending
+             Print email subjects and bodies instead of sending.
+             Other command actions still run.
+
+Exit codes:
+  0  Success; no action required for the checks performed.
+  1  Operation failed or check result unknown.
+  2  Invalid command or options.
+  3  Check completed; maintenance action required.
+HELP
+}
+
+main() {
+    local script_path project_directory
+    local command_name='' argument
+    # Runtime mode shared by every email delivery call.
+    SHC_WITHOUT_SENDING=false
+    # Resolve symlinks before locating the project's libraries and template.
+    script_path=$(realpath -- "${BASH_SOURCE[0]}") || return 1
+    project_directory=$(cd -- "$(dirname -- "$script_path")/.." && pwd -P) || return 1
+
+    SHC_PROJECT_DIRECTORY=$project_directory
+
+    # Load application code only; configuration files are never sourced.
+    # shellcheck source=lib/logging.sh
+    source "$project_directory/lib/logging.sh" || return 1
+
+    for argument in "$@"; do
+        case $argument in
+            --without-sending)
+                SHC_WITHOUT_SENDING=true
+                ;;
+            -h|--help)
+                show_help
+                return
+                ;;
+            -*)
+                log_error 'invalid options. Use --help for usage.'
+                return 2
+                ;;
+            *)
+                if [[ -n $command_name || -z $argument ]]; then
+                    log_error 'expected one command. Use --help for usage.'
+                    return 2
+                fi
+                command_name=$argument
+                ;;
+        esac
+    done
+
+    case $command_name in
+        '')
+            show_help
+            ;;
+        init-config|self-update|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-ubuntu-eol|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
+            if (( EUID != 0 )); then
+                log_error 'this command must be run as root.'
+                return 1
+            fi
+
+            case $command_name in
+                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-ubuntu-eol|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
+                    # shellcheck source=lib/checks.sh
+                    source "$project_directory/lib/checks.sh" || return 1
+                    # shellcheck source=lib/checks/reboot.sh
+                    source "$project_directory/lib/checks/reboot.sh" || return 1
+                    # shellcheck source=lib/checks/apt.sh
+                    source "$project_directory/lib/checks/apt.sh" || return 1
+                    # shellcheck source=lib/checks/unattended.sh
+                    source "$project_directory/lib/checks/unattended.sh" || return 1
+                    # shellcheck source=lib/checks/systemd.sh
+                    source "$project_directory/lib/checks/systemd.sh" || return 1
+                    # shellcheck source=lib/checks/ubuntu.sh
+                    source "$project_directory/lib/checks/ubuntu.sh" || return 1
+                    # shellcheck source=lib/checks/time.sh
+                    source "$project_directory/lib/checks/time.sh" || return 1
+                    # shellcheck source=lib/checks/logrotate.sh
+                    source "$project_directory/lib/checks/logrotate.sh" || return 1
+                    # shellcheck source=lib/checks/redis.sh
+                    source "$project_directory/lib/checks/redis.sh" || return 1
+                    # shellcheck source=lib/checks/git.sh
+                    source "$project_directory/lib/checks/git.sh" || return 1
+                    # shellcheck source=lib/checks/listeners.sh
+                    source "$project_directory/lib/checks/listeners.sh" || return 1
+                    case $command_name in
+                        check-critical-services|check-redis-persistence|check-listening-interfaces|check-all|report)
+                            # Server-specific checks require validated configuration.
+                            # shellcheck source=lib/config.sh
+                            source "$project_directory/lib/config.sh" || return 1
+                            load_config /etc/server-health-check.conf || return 1
+                            ;;
+                    esac
+                    case $command_name in
+                        check-reboot) run_checks check_reboot ;;
+                        check-apt-index) run_checks check_apt_index ;;
+                        check-apt-updates) run_checks check_apt_updates ;;
+                        check-unattended-upgrades) run_checks check_unattended_upgrades ;;
+                        check-failed-services) run_checks check_failed_services ;;
+                        check-git-up-to-date) run_checks check_git_up_to_date ;;
+                        check-critical-services)
+                            if [[ $SHC_CRITICAL_SERVICES != none ]]; then
+                                run_checks check_critical_services
+                            else
+                                printf 'Critical systemd services: Not configured\n'
+                            fi
+                            ;;
+                        check-ubuntu-eol) run_checks check_ubuntu_eol ;;
+                        check-time-sync) run_checks check_time_sync ;;
+                        check-logrotate) run_checks check_logrotate ;;
+                        check-redis-persistence)
+                            if [[ $SHC_REDIS_ENABLED == true ]]; then
+                                run_checks check_redis_persistence
+                            else
+                                printf 'Redis persistence: Not checked (REDIS_ENABLED=false)\n'
+                            fi
+                            ;;
+                        check-listening-interfaces)
+                            if [[ $SHC_MYSQL_ENABLED == true || $SHC_REDIS_ENABLED == true ]]; then
+                                run_checks check_listening_interfaces
+                            else
+                                printf 'Listening interfaces: Not checked (MySQL and Redis disabled)\n'
+                            fi
+                            ;;
+                        check-all) run_all_checks ;;
+                        report)
+                            # shellcheck source=lib/mailgun.sh
+                            source "$project_directory/lib/mailgun.sh" || return 1
+                            # shellcheck source=lib/report-html.sh
+                            source "$project_directory/lib/report-html.sh" || return 1
+                            # shellcheck source=lib/report.sh
+                            source "$project_directory/lib/report.sh" || return 1
+                            send_health_report
+                            ;;
+                    esac
+                    ;;
+                self-update)
+                    # shellcheck source=lib/update.sh
+                    source "$project_directory/lib/update.sh" || return 1
+                    self_update "$project_directory"
+                    ;;
+                init-config)
+                    # shellcheck source=lib/init.sh
+                    source "$project_directory/lib/init.sh" || return 1
+                    init_config "$project_directory/config/config.example" /etc/server-health-check.conf
+                    ;;
+                validate-config|test-email)
+                    # shellcheck source=lib/config.sh
+                    source "$project_directory/lib/config.sh" || return 1
+                    load_config /etc/server-health-check.conf || return 1
+                    if [[ $command_name == validate-config ]]; then
+                        printf 'Configuration is valid.\n'
+                    else
+                        # shellcheck source=lib/mailgun.sh
+                        source "$project_directory/lib/mailgun.sh" || return 1
+                        send_test_email
+                    fi
+                    ;;
+            esac
+            ;;
+        *)
+            log_error 'unknown command. Use --help for usage.'
+            return 2
+            ;;
+    esac
+}
+
+main "$@"

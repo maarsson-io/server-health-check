@@ -1,0 +1,44 @@
+# Example only. Keep real credentials outside the repository.
+# Runtime location: /etc/server-health-check.conf (root:root, mode 0600).
+#
+# Format: one KEY=value per line. Server and email settings are required.
+# Service-specific settings are optional; the defaults are shown below.
+# Values are literal: do not add quotes, inline comments, or shell expressions.
+# Blank lines and lines starting with # are ignored.
+# Use LF line endings, unique keys, and no surrounding whitespace in values.
+
+# Server name shown in the report and email subject.
+SERVER_NAME=example-server
+
+# Use the region where your Mailgun sending domain is configured:
+# US: https://api.mailgun.net
+# EU: https://api.eu.mailgun.net
+# Reference: https://documentation.mailgun.com/docs/mailgun/api-reference/api-overview
+MAILGUN_API_BASE_URL=https://api.mailgun.net
+MAILGUN_DOMAIN=mg.example.com
+MAILGUN_API_KEY=replace-with-your-mailgun-api-key
+
+# Sender and recipient email addresses.
+MAIL_FROM=server-health@mg.example.com
+MAIL_TO=admin@example.com
+
+# Local Redis connection without password authentication (default user).
+# Enable Redis persistence and listener checks only where Redis is used.
+REDIS_ENABLED=false
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+
+# Allowed Redis TCP listener addresses (loopback only, comma-separated).
+REDIS_ALLOWED_LISTEN_ADDRESSES=127.0.0.1,::1
+
+# MySQL TCP listener checks. X Protocol is checked only when a listener exists.
+MYSQL_ENABLED=false
+MYSQL_LISTEN_PORTS=3306,33060
+MYSQL_ALLOWED_LISTEN_ADDRESSES=127.0.0.1
+
+# Services that must stay running. Use none to skip this check.
+# Comma-separated .service or .socket names; php*-fpm.service covers all installed versions.
+# A .socket is OK while listening.
+# Suggested list (adapt to the units installed on each server):
+# nginx.service,php*-fpm.service,mysql.service,redis-server.service,supervisor.service,tailscaled.service,beszel-agent.service,cron.service,fail2ban.service,ssh.socket
+CRITICAL_SERVICES=none

@@ -1,0 +1,23 @@
+[Unit]
+Description=Server Health Check email report
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/opt/server-health-check/bin/server-health-check report
+# Maintenance findings are a completed report, not a service execution failure.
+SuccessExitStatus=3
+# Above the sum of all per-check time limits, so the report is always sent.
+TimeoutStartSec=15min
+TimeoutStopSec=10s
+KillMode=control-group
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=server-health-check

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Server health check – {{SERVER_NAME}} – {{STATUS}}</title>
+<style>
+  body { margin:0; padding:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  table { border-collapse:collapse; }
+  .mono { font-family:'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace; }
+  @media (max-width:620px) {
+    .container { width:100% !important; }
+    .px { padding-left:20px !important; padding-right:20px !important; }
+    .stat { display:block !important; width:100% !important; border-left:0 !important; border-top:1px solid #ececec !important; }
+    .stat-first { border-top:0 !important; }
+    .pkg-ver { display:block !important; padding-top:2px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .bg { background:#0f0f10 !important; }
+    .card { background:#18181b !important; border-color:#27272a !important; }
+    .t1 { color:#f4f4f5 !important; }
+    .t2 { color:#a1a1aa !important; }
+    .line { border-color:#27272a !important; }
+    .soft { background:#1f1f23 !important; }
+    .result-ok { color:#4ade80 !important; }
+    .result-action { color:#f87171 !important; }
+    .result-unknown { color:#fbbf24 !important; }
+  }
+</style>
+</head>
+<body class="bg" style="margin:0; padding:0; background:#f4f4f5;">
+
+<!-- Preheader (inbox preview text) -->
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+  {{SERVER_NAME}}: {{STATUS}}. {{OK_COUNT}} OK, {{ACTION_COUNT}} action required, {{UNKNOWN_COUNT}} failed / unknown.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg" style="background:#f4f4f5;">
+<tr><td align="center" style="padding:32px 12px;">
+
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="container" style="width:600px; max-width:600px;">
+
+    <!-- Top label -->
+    <tr><td class="px t2" style="padding:0 4px 12px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#71717a;">
+      Server health check
+    </td></tr>
+
+    <!-- Card -->
+    <tr><td class="card" style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+
+        <!-- Header -->
+        <tr><td class="px" style="padding:28px 32px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <span style="display:inline-block; padding:4px 10px; border-radius:999px; background:{{STATUS_BG}}; border:1px solid {{STATUS_BORDER}}; color:{{STATUS_COLOR}}; font-size:12px; font-weight:600; letter-spacing:0.04em;">
+            &#9679;&nbsp; {{STATUS}}
+          </span>
+          <div class="t1 mono" style="margin-top:16px; font-size:24px; line-height:1.25; font-weight:600; color:#18181b;">
+            {{SERVER_NAME}}
+          </div>
+          <div class="t2" style="margin-top:6px; font-size:14px; color:#71717a;">
+            {{TIMESTAMP}}
+          </div>
+        </td></tr>
+
+        <!-- Stats -->
+        <tr><td class="px" style="padding:0 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="line" style="border:1px solid #ececec; border-radius:8px;">
+            <tr>
+              <td class="stat stat-first" width="33%" style="padding:14px 16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <div class="result-ok" style="font-size:22px; font-weight:600; color:#15803d;">{{OK_COUNT}}</div>
+                <div class="t2" style="font-size:12px; color:#71717a;">OK</div>
+              </td>
+              <td class="stat line" width="34%" style="padding:14px 16px; border-left:1px solid #ececec; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <div class="result-action" style="font-size:22px; font-weight:600; color:#b91c1c;">{{ACTION_COUNT}}</div>
+                <div class="t2" style="font-size:12px; color:#71717a;">Action required</div>
+              </td>
+              <td class="stat line" width="33%" style="padding:14px 16px; border-left:1px solid #ececec; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <div class="result-unknown" style="font-size:22px; font-weight:600; color:#a16207;">{{UNKNOWN_COUNT}}</div>
+                <div class="t2" style="font-size:12px; color:#71717a;">Failed / unknown</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Checks overview -->
+        <tr><td class="px" style="padding:28px 32px 8px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <div class="t2" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#71717a; padding-bottom:8px;">Checks</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+{{CHECK_ROWS}}
+          </table>
+        </td></tr>
+
+{{DETAIL_SECTIONS}}
+
+        <!-- Summary -->
+        <tr><td class="px" style="padding:24px 32px 32px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{STATUS_BG}}; border-left:3px solid {{STATUS_COLOR}}; border-radius:4px;">
+            <tr><td style="padding:14px 16px; font-size:14px; line-height:1.5; color:{{STATUS_COLOR}};">
+              <strong>{{STATUS}}</strong><br>{{SUMMARY_TEXT}}
+            </td></tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+
+    <!-- Footer -->
+    <tr><td class="px t2" style="padding:16px 4px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:1.5; color:#a1a1aa;">
+      Automated report from <span class="mono">{{SERVER_NAME}}</span> &middot; Checks: {{CHECK_NAMES}}
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>
