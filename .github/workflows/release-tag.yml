@@ -1,0 +1,103 @@
+name: Release Tag and Release
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  create-release-tag:
+    name: Create Release Tag and Release
+
+    if: >
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'develop' &&
+      github.event.pull_request.base.ref == 'master'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          # Tag the final merge commit from this pull_request.closed event, not a synthetic PR merge SHA.
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Create Release Tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_commit_title="$(git log -1 --pretty=%s)"
+
+          echo "Latest commit: ${latest_commit_title}"
+
+          if [[ ! "${latest_commit_title}" =~ ^chore\(release\):\ ([0-9]+\.[0-9]+\.[0-9]+)(\ \(#[0-9]+\))?$ ]]; then
+            echo "::error::Expected latest commit to be a release merge commit. Found: '${latest_commit_title}'"
+            exit 1
+          fi
+
+          release_version="${BASH_REMATCH[1]}"
+
+          echo "Release version: ${release_version}"
+          echo "version=${release_version}" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "${release_version}" >/dev/null 2>&1; then
+            existing_commit="$(git rev-list -n1 "${release_version}")"
+            head_commit="$(git rev-parse HEAD)"
+
+            if [[ "${existing_commit}" == "${head_commit}" ]]; then
+              echo "Tag ${release_version} already exists on current commit."
+              exit 0
+            fi
+
+            echo "::error::Tag ${release_version} already exists on a different commit."
+            exit 1
+          fi
+
+          git tag "${release_version}"
+          git push origin "${release_version}"
+
+          echo "Created tag ${release_version}."
+
+      - name: Create Latest Release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const version = process.env.RELEASE_VERSION;
+            const repo = context.repo;
+
+            try {
+              await github.rest.repos.getReleaseByTag({
+                ...repo,
+                tag: version,
+              });
+
+              core.info(`Release ${version} already exists.`);
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            await github.rest.repos.createRelease({
+              ...repo,
+              tag_name: version,
+              name: version,
+              draft: false,
+              prerelease: false,
+              make_latest: 'true',
+            });
+
+            core.info(`Created Latest release ${version}.`);
