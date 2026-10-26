@@ -23,7 +23,7 @@ MAIL_FROM=server-health@mg.example.com
 MAIL_TO=admin@example.com
 
 # Local Redis connection without password authentication (default user).
-# These settings are validated; Redis health checks are not implemented yet.
+# Enable Redis persistence checks only on servers using this connection.
 REDIS_ENABLED=false
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379

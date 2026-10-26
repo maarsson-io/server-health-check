@@ -26,6 +26,7 @@
 !/lib/checks/systemd.sh
 !/lib/checks/time.sh
 !/lib/checks/logrotate.sh
+!/lib/checks/redis.sh
 
 # systemd
 !/systemd/

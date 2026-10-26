@@ -10,7 +10,8 @@ The tool will not install package updates or reboot servers.
 
 Early development. Configuration initialization, validation, test email delivery,
 APT update analysis, reboot, unattended-upgrades, failed-service and clock
-synchronization and logrotate checks, email reports, and a weekly systemd timer are available.
+synchronization, logrotate, and optional Redis persistence checks, email reports,
+and a weekly systemd timer are available.
 
 ## Usage
 
@@ -45,8 +46,8 @@ Optional Redis settings are `REDIS_ENABLED` (`true` or `false`, default `false`)
 `REDIS_HOST` (`127.0.0.1` or `::1`, default `127.0.0.1`), and `REDIS_PORT`
 (`1`–`65535`, default `6379`). These describe a local connection as the default
 Redis user without password authentication. Existing configuration files remain
-valid without them. Currently these settings are only validated; Redis health
-checks are not implemented yet.
+valid without them. Set `REDIS_ENABLED=true` to include Redis in `check-all`
+and reports; otherwise Redis is skipped and is not counted as a passed check.
 
 To send a test email to the configured recipient:
 
@@ -167,6 +168,26 @@ checked across boots when retained; an enabled timer alone does not prove succes
 Each systemd/journal query has a five-second limit plus up to two seconds for
 cleanup. The check never runs logrotate, rotates files, or changes services.
 
+To inspect Redis persistence without triggering a save:
+
+```sh
+sudo server-health-check check-redis-persistence
+```
+
+With `REDIS_ENABLED=true`, this reads the RDB save schedule and Redis persistence
+status using `redis-cli`. RDB background-save failures, AOF write failures, and AOF
+rewrite failures require attention (`3`). Disabled RDB scheduling or AOF is not a
+failure. If both are disabled, persistence is reported as not applicable.
+Connection, authentication, timeout, missing-client, and unsupported-response
+errors are unknown (`1`), as is a dataset still loading. Each of the two queries
+has a ten-second limit plus up to two seconds for cleanup. Inherited
+`REDISCLI_AUTH` is ignored; password authentication is not supported yet.
+
+This checks Redis-reported status, not backup freshness or restorability; an OK
+status does not prove that a save or rewrite has actually occurred since startup.
+With `REDIS_ENABLED=false`, the standalone command reports that Redis was not
+checked and returns `0` without connecting.
+
 To run all implemented checks and summarize their results:
 
 ```sh
@@ -174,7 +195,8 @@ sudo server-health-check check-all
 ```
 
 Currently this checks available APT updates (including index refresh), reboot
-status, unattended upgrades, failed services, time synchronization, and logrotate. Checks
+status, unattended upgrades, failed services, time synchronization, logrotate, and
+Redis persistence when enabled. `check-all` requires a valid configuration. Checks
 continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.

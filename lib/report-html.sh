@@ -91,6 +91,7 @@ report_html_details() {
             failed_services) title='Failed services' ;;
             time_sync) title='Time synchronization' ;;
             logrotate) title='Logrotate' ;;
+            redis_persistence) title='Redis persistence' ;;
             *) title=$name ;;
         esac
         color=$(report_html_color "${SHC_CHECK_RESULTS[i]}")

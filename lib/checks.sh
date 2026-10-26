@@ -97,6 +97,10 @@ run_checks() {
 
 run_all_checks() {
     # Extend this explicit list as additional checks are implemented.
-    run_checks check_apt_updates check_reboot check_unattended_upgrades \
-        check_failed_services check_time_sync check_logrotate
+    local -a checks=(check_apt_updates check_reboot check_unattended_upgrades
+        check_failed_services check_time_sync check_logrotate)
+    if [[ ${SHC_REDIS_ENABLED:-false} == true ]]; then
+        checks+=(check_redis_persistence)
+    fi
+    run_checks "${checks[@]}"
 }
