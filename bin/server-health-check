@@ -41,6 +41,9 @@ Commands:
   check-critical-services
              Verify configured critical services are running or sockets are listening.
              Requires root. Does not change service state.
+  check-ubuntu-eol
+             Check Ubuntu standard support; warn at 90 days or less remaining.
+             Requires root. Uses local distro-info data; does not upgrade Ubuntu.
   check-time-sync
              Check whether the system clock is synchronized. Requires root.
              Does not change the clock or time synchronization settings.
@@ -56,7 +59,8 @@ Commands:
   check-all  Run all implemented checks and summarize their results. Requires root.
              Checks APT updates, reboot, unattended upgrades, failed services,
              time synchronization, logrotate, Redis persistence, configured listeners,
-             critical services, and the project Git version. Does not send email.
+             critical services, Ubuntu support, and the project Git version.
+             Does not send email.
   report     Run all implemented checks and email their results. Requires root.
              Sends a report even when healthy or a check fails.
 
@@ -116,14 +120,14 @@ main() {
         '')
             show_help
             ;;
-        init-config|self-update|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
+        init-config|self-update|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-ubuntu-eol|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
             case $command_name in
-                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
+                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-git-up-to-date|check-critical-services|check-ubuntu-eol|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
                     # shellcheck source=lib/checks.sh
                     source "$project_directory/lib/checks.sh" || return 1
                     # shellcheck source=lib/checks/reboot.sh
@@ -134,6 +138,8 @@ main() {
                     source "$project_directory/lib/checks/unattended.sh" || return 1
                     # shellcheck source=lib/checks/systemd.sh
                     source "$project_directory/lib/checks/systemd.sh" || return 1
+                    # shellcheck source=lib/checks/ubuntu.sh
+                    source "$project_directory/lib/checks/ubuntu.sh" || return 1
                     # shellcheck source=lib/checks/time.sh
                     source "$project_directory/lib/checks/time.sh" || return 1
                     # shellcheck source=lib/checks/logrotate.sh
@@ -166,6 +172,7 @@ main() {
                                 printf 'Critical systemd services: Not configured\n'
                             fi
                             ;;
+                        check-ubuntu-eol) run_checks check_ubuntu_eol ;;
                         check-time-sync) run_checks check_time_sync ;;
                         check-logrotate) run_checks check_logrotate ;;
                         check-redis-persistence)

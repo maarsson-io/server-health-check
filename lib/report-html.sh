@@ -120,6 +120,7 @@ report_html_details() {
             critical_services) title='Critical services' ;;
             git_up_to_date) title='Project Git version' ;;
             time_sync) title='Time synchronization' ;;
+            ubuntu_eol) title='Ubuntu standard support' ;;
             logrotate) title='Logrotate' ;;
             redis_persistence) title='Redis persistence' ;;
             listening_interfaces) title='Listening interfaces' ;;

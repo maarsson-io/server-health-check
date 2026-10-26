@@ -9,7 +9,7 @@ It performs checks only, and will not install package updates or reboot servers.
 
 ## Installation
 
-Requires Ubuntu Linux, Bash, systemd, Git, and curl.
+Requires Ubuntu Linux, Bash, systemd, Git, curl, and `distro-info`.
 
 1. Clone the project, create a shortcut, and configure the server:
 
@@ -61,6 +61,7 @@ Missed schedules run after downtime. Keep the checkout root-owned and not writab
 | `check-unattended-upgrades` | Verify the daily scheduler and a successful unattended-upgrades run within 36 hours. |
 | `check-failed-services` | List failed system-wide systemd services. |
 | `check-critical-services` | Verify configured services are running or sockets are listening. Set `CRITICAL_SERVICES` to comma-separated `.service` or `.socket` names. (`php*-fpm.service` includes all installed PHP-FPM versions). Default: `none`. |
+| `check-ubuntu-eol` | Warn when Ubuntu standard support ends within 90 days or has expired. Uses local `distro-info-data`. |
 | `check-time-sync` | Check whether the system clock is synchronized. |
 | `check-logrotate` | Verify the logrotate timer and a successful run within 36 hours. |
 | `check-redis-persistence` | Check RDB/AOF failure states. Requires `redis-cli` and `REDIS_ENABLED=true`; set `REDIS_HOST`/`REDIS_PORT`. Currently supports passwordless connections only. Disabled persistence is accepted. |
