@@ -11,7 +11,8 @@ UMask=0077
 ExecStart=/opt/server-health-check/bin/server-health-check report
 # Maintenance findings are a completed report, not a service execution failure.
 SuccessExitStatus=3
-TimeoutStartSec=5min
+# Above the sum of all per-check time limits, so the report is always sent.
+TimeoutStartSec=15min
 TimeoutStopSec=10s
 KillMode=control-group
 Restart=no
