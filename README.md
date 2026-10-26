@@ -45,6 +45,27 @@ sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/serve
 Then run `server-health-check --help` or `sudo server-health-check init-config` from any
 directory.
 
+To update an installed Git checkout and append newly introduced config settings:
+
+```sh
+sudo server-health-check self-update
+```
+
+This updates the checked-out branch from its configured upstream using
+`git pull --ff-only`, then runs the updated `init-config` command. No repository,
+remote, or branch name is hardcoded, so forks work with their own upstream setup.
+It requires `git`, `timeout`, and `flock`, a clean working tree (including untracked
+files), and no in-progress Git operation. Detached HEADs and missing upstreams are
+rejected. Nothing is stashed, reset, rebased, or force-updated. Git errors are
+reported without raw remote URLs or credential-helper output.
+
+The pull has a 120-second limit plus up to five seconds for cleanup. Configure
+Git authentication for the root user running the command; terminal credential
+prompts are disabled. A failed pull does not run `init-config`. If config sync
+fails after a successful pull, the code remains updated: fix the config problem
+and rerun `init-config`. Even when the code is already current, config sync runs.
+Systemd unit files are not reinstalled or reloaded by this command.
+
 After editing the configuration, run `sudo server-health-check validate-config`.
 It checks file ownership, permissions, required settings, and basic value syntax
 without printing credentials. The example API key must be replaced. Successful

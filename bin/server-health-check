@@ -11,6 +11,9 @@ Commands:
   init-config
              Create configuration or append missing settings from the example.
              Requires root. Existing values are preserved.
+  self-update
+             Fast-forward the current Git branch from its configured upstream,
+             then run the updated init-config command. Requires root.
   validate-config
              Check configuration ownership, permissions, and values.
              Requires root. Does not modify files or send email.
@@ -107,7 +110,7 @@ main() {
         '')
             show_help
             ;;
-        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
+        init-config|self-update|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
@@ -181,6 +184,11 @@ main() {
                             send_health_report
                             ;;
                     esac
+                    ;;
+                self-update)
+                    # shellcheck source=lib/update.sh
+                    source "$project_directory/lib/update.sh" || return 1
+                    self_update "$project_directory"
                     ;;
                 init-config)
                     # shellcheck source=lib/init.sh
