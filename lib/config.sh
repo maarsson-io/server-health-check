@@ -34,11 +34,13 @@ load_config() {
 
     unset SHC_SERVER_NAME SHC_MAILGUN_API_BASE_URL SHC_MAILGUN_DOMAIN
     unset SHC_MAILGUN_API_KEY SHC_MAIL_FROM SHC_MAIL_TO
+    unset SHC_REDIS_ENABLED SHC_REDIS_HOST SHC_REDIS_PORT
 
     local config_path=$1 metadata content status line key value
     local line_number=0 seen='|'
     local parsed_SERVER_NAME='' parsed_MAILGUN_API_BASE_URL='' parsed_MAILGUN_DOMAIN=''
     local parsed_MAILGUN_API_KEY='' parsed_MAIL_FROM='' parsed_MAIL_TO=''
+    local parsed_REDIS_ENABLED=false parsed_REDIS_HOST=127.0.0.1 parsed_REDIS_PORT=6379
     local LC_ALL=C
 
     if [[ -L $config_path || ! -f $config_path ]]; then
@@ -77,7 +79,8 @@ load_config() {
         key=${line%%=*}
         value=${line#*=}
         case $key in
-            SERVER_NAME|MAILGUN_API_BASE_URL|MAILGUN_DOMAIN|MAILGUN_API_KEY|MAIL_FROM|MAIL_TO) ;;
+            SERVER_NAME|MAILGUN_API_BASE_URL|MAILGUN_DOMAIN|MAILGUN_API_KEY|MAIL_FROM|MAIL_TO|\
+            REDIS_ENABLED|REDIS_HOST|REDIS_PORT) ;;
             *) config_error "unknown configuration key on line $line_number."; return 1 ;;
         esac
         if [[ $seen == *"|$key|"* ]]; then
@@ -124,6 +127,21 @@ load_config() {
         fi
     done
 
+    case $parsed_REDIS_ENABLED in
+        true|false) ;;
+        *) config_error 'REDIS_ENABLED must be true or false.'; return 1 ;;
+    esac
+    case $parsed_REDIS_HOST in
+        127.0.0.1|::1) ;;
+        *) config_error 'REDIS_HOST must be 127.0.0.1 or ::1.'; return 1 ;;
+    esac
+    # Validate syntax before arithmetic: no expressions, leading zeros, or
+    # overly long numbers may reach Bash arithmetic evaluation.
+    if [[ ! $parsed_REDIS_PORT =~ ^[1-9][0-9]{0,4}$ ]] || (( parsed_REDIS_PORT > 65535 )); then
+        config_error 'REDIS_PORT must be an integer from 1 to 65535 without leading zeros.'
+        return 1
+    fi
+
     # Publish values only after the whole file passes. They are not exported.
     SHC_SERVER_NAME=$parsed_SERVER_NAME
     SHC_MAILGUN_API_BASE_URL=$parsed_MAILGUN_API_BASE_URL
@@ -131,4 +149,7 @@ load_config() {
     SHC_MAILGUN_API_KEY=$parsed_MAILGUN_API_KEY
     SHC_MAIL_FROM=$parsed_MAIL_FROM
     SHC_MAIL_TO=$parsed_MAIL_TO
+    SHC_REDIS_ENABLED=$parsed_REDIS_ENABLED
+    SHC_REDIS_HOST=$parsed_REDIS_HOST
+    SHC_REDIS_PORT=$parsed_REDIS_PORT
 }

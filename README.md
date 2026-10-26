@@ -41,6 +41,13 @@ It checks file ownership, permissions, required settings, and basic value syntax
 without printing credentials. The example API key must be replaced. Successful
 validation does not verify Mailgun credentials or email delivery.
 
+Optional Redis settings are `REDIS_ENABLED` (`true` or `false`, default `false`),
+`REDIS_HOST` (`127.0.0.1` or `::1`, default `127.0.0.1`), and `REDIS_PORT`
+(`1`–`65535`, default `6379`). These describe a local connection as the default
+Redis user without password authentication. Existing configuration files remain
+valid without them. Currently these settings are only validated; Redis health
+checks are not implemented yet.
+
 To send a test email to the configured recipient:
 
 ```sh

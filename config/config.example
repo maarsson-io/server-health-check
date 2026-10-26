@@ -1,7 +1,8 @@
 # Example only. Keep real credentials outside the repository.
 # Runtime location: /etc/server-health-check.conf (root:root, mode 0600).
 #
-# Format: one KEY=value per line. All settings below are required.
+# Format: one KEY=value per line. Server and email settings are required.
+# Redis settings are optional; the defaults are shown below.
 # Values are literal: do not add quotes, inline comments, or shell expressions.
 # Blank lines and lines starting with # are ignored.
 # Use LF line endings, unique keys, and no surrounding whitespace in values.
@@ -20,3 +21,9 @@ MAILGUN_API_KEY=replace-with-your-mailgun-api-key
 # Sender and recipient email addresses.
 MAIL_FROM=server-health@mg.example.com
 MAIL_TO=admin@example.com
+
+# Local Redis connection without password authentication (default user).
+# These settings are validated; Redis health checks are not implemented yet.
+REDIS_ENABLED=false
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
