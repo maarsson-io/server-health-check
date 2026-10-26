@@ -1,404 +1,91 @@
-# Server Health Check
+# Server Health Checker
+
+[![Latest Stable Version](https://img.shields.io/github/v/release/maarsson-io/server-health-check?label=Latest)](https://github.com/maarsson-io/server-health-check/releases)
+[![Tested on Ubuntu 24.04](https://img.shields.io/badge/tested_on-Ubuntu_24.04-blue)](https://releases.ubuntu.com/)
+[![License](https://img.shields.io/github/license/maarsson-io/server-health-check)](https://github.com/maarsson-io/server-health-check/blob/master/LICENSE)
 
 A lightweight tool for weekly health reports from Ubuntu servers.
-
-The initial scope is APT update availability and reboot status, with email delivery. Each server will send a weekly report, even when no action is required.
-
-The tool will not install package updates or reboot servers.
-Database-backup failure notifications remain the responsibility of Forge.
-
-## Status
-
-Early development. Configuration initialization, validation, test email delivery,
-APT update analysis, reboot, unattended-upgrades, failed-service and clock
-synchronization, logrotate, Redis persistence, MySQL/Redis listeners, critical-service
-checks, email reports,
-and a weekly systemd timer are available.
-
-## Usage
-
-From the project directory on an Ubuntu server:
-
-```sh
-./bin/server-health-check --help
-sudo ./bin/server-health-check init-config
-sudo ./bin/server-health-check validate-config
-```
-
-The `init-config` command creates `/etc/server-health-check.conf` from the example with
-root-only access. If the file already exists, it appends only missing settings
-from the current example, preserving existing values, comments, and order.
-Repeated runs make no changes once all keys are present. Updates use an atomic
-file replacement with `root:root` ownership and mode `0600`. Symlinks, unsafe
-permissions, malformed syntax, and duplicate keys are rejected without changes.
-Review appended defaults and run `validate-config` afterwards; `init-config`
-does not validate credentials or the meaning of existing values.
-Edit the created file to set your server name and email credentials. Keep real
-credentials outside the repository.
-
-For a project installed at `/opt/server-health-check`, create a command shortcut:
-
-```sh
-sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/server-health-check
-```
-
-Then run `server-health-check --help` or `sudo server-health-check init-config` from any
-directory.
-
-To update an installed Git checkout and append newly introduced config settings:
-
-```sh
-sudo server-health-check self-update
-```
-
-This updates the checked-out branch from its configured upstream using
-`git pull --ff-only`, then runs the updated `init-config` command. No repository,
-remote, or branch name is hardcoded, so forks work with their own upstream setup.
-It requires `git`, `timeout`, and `flock`, a clean working tree (including untracked
-files), and no in-progress Git operation. Detached HEADs and missing upstreams are
-rejected. Nothing is stashed, reset, rebased, or force-updated. Git errors are
-reported without raw remote URLs or credential-helper output.
-
-The pull has a 120-second limit plus up to five seconds for cleanup. Configure
-Git authentication for the root user running the command; terminal credential
-prompts are disabled. A failed pull does not run `init-config`. If config sync
-fails after a successful pull, the code remains updated: fix the config problem
-and rerun `init-config`. Even when the code is already current, config sync runs.
-Systemd unit files are not reinstalled or reloaded by this command.
-
-To check whether the installed commit matches the live upstream branch:
-
-```sh
-sudo server-health-check check-git-up-to-date
-```
-
-This check is always included in `check-all` and reports. It queries the configured
-upstream using `git ls-remote`; it does not fetch objects, change refs, update code,
-or modify config. Matching commits pass (`0`). Any commit difference requires
-attention (`3`), including a checkout ahead of or diverged from upstream. This is
-a commit comparison; uncommitted files are not assessed by this check.
-
-A missing Git checkout/upstream, detached HEAD, unavailable remote, authentication
-failure, timeout, or unsupported response is unknown (`1`). The remote query has
-a 30-second limit plus up to five seconds for cleanup. It uses the root user's Git
-authentication, with terminal credential prompts disabled and raw errors hidden.
-An unsuccessful version check does not stop other checks or the report delivery
-attempt. No repository or branch name is hardcoded.
-
-After editing the configuration, run `sudo server-health-check validate-config`.
-It checks file ownership, permissions, required settings, and basic value syntax
-without printing credentials. The example API key must be replaced. Successful
-validation does not verify Mailgun credentials or email delivery.
-
-Optional Redis settings are `REDIS_ENABLED` (`true` or `false`, default `false`),
-`REDIS_HOST` (`127.0.0.1` or `::1`, default `127.0.0.1`), and `REDIS_PORT`
-(`1`–`65535`, default `6379`). These describe a local connection as the default
-Redis user without password authentication. Existing configuration files remain
-valid without them. Set `REDIS_ENABLED=true` to include Redis in `check-all`
-and reports (persistence and TCP listeners); otherwise Redis is skipped.
-`MYSQL_ENABLED` similarly enables MySQL listener checks and defaults to `false`.
-Both disabled services are excluded from check counts.
-
-To send a test email to the configured recipient:
-
-```sh
-sudo server-health-check test-email
-```
-
-To preview the same subject and body without sending:
-
-```sh
-sudo server-health-check test-email --without-sending
-```
-
-`--without-sending` is a shared email-delivery option, accepted before or after the
-command. It displays each email's subject and body instead of contacting Mailgun.
-All other command actions still run, including configuration validation and health
-checks. It does not prevent `init-config` from creating a configuration file.
-
-Emails use the sender name `Health Checker Service` and the address in `MAIL_FROM`.
-Actual email delivery requires `curl`. Success means Mailgun accepted the message for delivery;
-confirm arrival in the recipient inbox. Requests time out after 30 seconds and
-are not retried automatically. Credentials are passed through standard input,
-without a named temporary credentials file. API response bodies are not printed.
-
-To check reboot status without sending email:
-
-```sh
-sudo server-health-check check-reboot
-```
-
-Currently this checks only `/run/reboot-required`; it does not assess overall
-server health and does not need the email configuration. Exit code `0` means no
-reboot marker was found, `3` means a reboot is required, and `1` means the result
-could not be determined. The command never reboots the server.
-
-To refresh APT package indexes without installing packages:
-
-```sh
-sudo server-health-check check-apt-index
-```
-
-Repository failures (including partial failures), lock conflicts, and timeouts
-produce an unknown/failed result. Existing APT processes are left alone. The
-refresh has a 120-second limit, with up to 5 additional seconds for forced cleanup.
-Raw APT output is not printed or logged because it may contain private repository
-URLs; errors include an exit code. Run `sudo apt-get update --error-on=any` manually
-on the server if detailed diagnostics are needed. This command only refreshes indexes.
-
-To check available updates without installing packages:
-
-```sh
-sudo server-health-check check-apt-updates
-```
-
-This refreshes indexes first, then simulates `apt-get upgrade` with a 60-second
-limit (plus up to 5 seconds for cleanup). It lists eligible upgrades with versions,
-phased updates, and packages kept back for other reasons. Holds and phasing are
-respected. Eligible upgrades and other held-back packages require maintenance
-review (exit `3`); phased updates alone do not (exit `0`). A failed refresh or
-simulation, or an unrecognized result, is unknown (exit `1`). This does not assess
-whether unattended upgrades will install a package automatically.
-
-To verify recent automatic-upgrade execution without running upgrades:
-
-```sh
-sudo server-health-check check-unattended-upgrades
-```
-
-This checks the standard Ubuntu daily APT timer and periodic settings, then
-requires both a successful APT `upgrade-stamp` and a matching completed
-unattended-upgrades log within 36 hours. A successful run with no updates counts.
-The OK result shows the successful run time as `YYYY-MM-DD HH:MM` in the server's local timezone.
-The previous rotated log (plain or gzip) is also read when present.
-
-Disabled automation or an explicitly failed attempt requires attention (exit `3`).
-Missing, stale, unreadable, inconsistent, or unrecognized evidence is unknown
-(exit `1`), as are warnings, simulations, and a run still in progress. Custom
-schedulers or log locations are not verified by this initial implementation.
-The check does not change settings or audit the allowed security-update origins.
-
-To list failed system-wide systemd services:
-
-```sh
-sudo server-health-check check-failed-services
-```
-
-No failed services returns `0`. Failed services (including failed oneshot services)
-are listed for journal review and return `3`. Inactive or disabled services are
-not failures on their own. A failed or unrecognized query returns unknown (`1`).
-The query has a 15-second limit plus up to 2 seconds for cleanup, and never
-changes service state. It does not check user services or whether configured
-critical services are running.
-
-To verify services which must stay running:
-
-```sh
-sudo server-health-check init-config
-```
-
-Set `CRITICAL_SERVICES` in the server config, for example:
-
-```ini
-CRITICAL_SERVICES=nginx.service,php*-fpm.service,mysql.service,redis-server.service,supervisor.service,tailscaled.service,beszel-agent.service,cron.service,fail2ban.service,ssh.service
-```
-
-Use exact systemd unit names installed on that server, separated by commas without
-spaces. The only wildcard supported is `php*-fpm.service`: every installed PHP-FPM
-service must be running, including disabled older versions. No installed PHP-FPM
-service also requires attention. Aliases and instantiated service names work;
-unit templates without an instance do not. Default `none` skips this check and
-keeps existing configurations valid.
-
-```sh
-sudo server-health-check check-critical-services
-```
-
-Loaded, active, running services pass (`0`). Missing, masked, failed, inactive, or
-active-but-exited services require attention (`3`). Transitional, unsupported,
-incomplete, or failed queries are unknown (`1`). The check uses a single batch
-`systemctl show` query, plus an installed-unit query when PHP discovery is needed;
-each has a 15-second limit plus up to two seconds for cleanup. It does not change
-service state or verify application-level health. Only problematic services are
-listed. When configured, it is included in `check-all` and reports, independently
-of the system-wide failed-service check. No configured list means no passed-check
-count and a standalone `Not configured` result with exit `0`.
-
-To check system clock synchronization:
-
-```sh
-sudo server-health-check check-time-sync
-```
-
-This reads the system synchronization state reported by `timedatectl`, without
-requiring a particular NTP daemon. Synchronized returns `0`, unsynchronized
-requires attention (`3`), and an unavailable or unrecognized result is unknown
-(`1`). The query has a 15-second limit plus up to 2 seconds for cleanup. It does
-not change the clock or service settings, or measure the clock offset itself.
-
-To verify recent logrotate execution without rotating logs:
-
-```sh
-sudo server-health-check check-logrotate
-```
-
-This checks the standard Ubuntu logrotate timer and oneshot service, and requires
-a successful execution recorded in the system journal within 36 hours. The OK
-result includes the completion time in the server's local timezone. A disabled
-timer or failed execution requires attention (`3`). Missing or unreadable history,
-an unsupported setup, or an unfinished run is unknown (`1`). Journal history is
-checked across boots when retained; an enabled timer alone does not prove success.
-Each systemd/journal query has a five-second limit plus up to two seconds for
-cleanup. The check never runs logrotate, rotates files, or changes services.
-
-To inspect Redis persistence without triggering a save:
-
-```sh
-sudo server-health-check check-redis-persistence
-```
-
-With `REDIS_ENABLED=true`, this reads the RDB save schedule and Redis persistence
-status using `redis-cli`. RDB background-save failures, AOF write failures, and AOF
-rewrite failures require attention (`3`). Disabled RDB scheduling or AOF is not a
-failure. If both are disabled, persistence is reported as not applicable.
-Connection, authentication, timeout, missing-client, and unsupported-response
-errors are unknown (`1`), as is a dataset still loading. Each of the two queries
-has a ten-second limit plus up to two seconds for cleanup. Inherited
-`REDISCLI_AUTH` is ignored; password authentication is not supported yet.
-
-This checks Redis-reported status, not backup freshness or restorability; an OK
-status does not prove that a save or rewrite has actually occurred since startup.
-With `REDIS_ENABLED=false`, the standalone command reports that Redis was not
-checked and returns `0` without connecting.
-
-To check the TCP listening addresses of enabled MySQL and Redis services:
-
-```sh
-sudo server-health-check init-config
-sudo server-health-check check-listening-interfaces
-```
-
-`init-config` appends the new settings without changing existing values. Enable
-MySQL with `MYSQL_ENABLED=true`; Redis uses `REDIS_ENABLED`. Defaults are:
-
-```ini
-MYSQL_LISTEN_PORTS=3306,33060
-MYSQL_ALLOWED_LISTEN_ADDRESSES=127.0.0.1
-REDIS_ALLOWED_LISTEN_ADDRESSES=127.0.0.1,::1
-```
-
-MySQL ports are a comma-separated list of unique ports (`1`–`65535`, no leading
-zeros). Redis uses `REDIS_PORT`. Each address allowlist accepts `127.0.0.1`, `::1`,
-or both, separated by a comma without spaces. Every listener on a configured
-port must use an allowed address. Wildcard or other addresses require attention
-(`3`), including the X Protocol port when present. Not every port/address in the
-lists must have a listener; absent X Protocol alone is not a failure.
-
-The check uses `ss` with numeric TCP output and a ten-second time limit per
-service, plus up to two seconds for cleanup. A failed, timed-out, or unsupported
-query is unknown (`1`), as is finding no listeners on any configured port of an
-enabled service. Both services are checked even if one fails. When both are
-disabled, the standalone command reports that nothing was checked and returns
-`0`; the check is excluded from `check-all` and reports.
-
-This inspects configured ports in the current network namespace, without
-checking which process owns them, service availability, firewall rules, Unix
-sockets, or other namespaces. It never changes network or service settings.
-
-To run all implemented checks and summarize their results:
-
-```sh
-sudo server-health-check check-all
-```
-
-Currently this checks available APT updates (including index refresh), reboot
-status, unattended upgrades, failed services, time synchronization, logrotate, and
-Redis persistence when enabled, configured MySQL/Redis listening addresses, and
-configured critical services, plus the project Git version.
-`check-all` requires a valid configuration. Checks
-continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
-failed/unknown results. A failed or unknown result takes precedence (exit `1`),
-followed by action required (exit `3`); otherwise the exit code is `0`.
-The summary covers only the checks performed. No email is sent.
-
-To run the same checks and email their results:
-
-```sh
-sudo server-health-check report
-sudo server-health-check report --without-sending
-```
-
-The second command previews the email without sending. Both validate the email
-configuration first and run all implemented checks. A report is sent even when
-healthy or a check fails. Its subject is `[{server-name}] {STATUS}`, with `OK`,
-`ACTION REQUIRED`, or `CHECK FAILED OR UNKNOWN`; its body includes the server name, local server time (with timezone abbreviation and UTC offset),
-and check results. The report covers only the implemented checks.
-
-Reports include plain text and a responsive HTML version with a status badge,
-result counts, a check overview, and details grouped by check. APT package lists
-separate eligible, phased, and other held-back updates. Status colors are green
-for OK, red for ACTION REQUIRED, and amber for CHECK FAILED OR UNKNOWN. Both
-formats use the same collected check results. The terminal preview shows the
-plain-text version. Keep `templates/report.html` with the installed project.
-
-After successful email acceptance (or preview), the exit code reflects the checks:
-`0` for OK, `3` for maintenance required, `1` for failed/unknown. Configuration or
-delivery failure also returns `1`.
-
-## Weekly scheduling
-
-Install the project at `/opt/server-health-check`. On production servers, keep
-the project owned by root and not writable by other users: the service runs it
-as root. Validate the configuration and test a manual report before enabling
-the timer.
-
-From the project directory:
-
-```sh
-sudo install -o root -g root -m 0644 systemd/server-health-check.service systemd/server-health-check.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now server-health-check.timer
-systemctl list-timers --all server-health-check.timer
-```
-
-The timer runs every Sunday at 04:30 in the server's local timezone, with up to
-one minute of scheduling tolerance. Check the timezone with `timedatectl`.
-After downtime, a missed schedule triggers one current report when the timer
-starts; this may also happen on first activation. It does not replay every
-missed week. Failed reports are not retried automatically.
-
-The service has a five-minute time limit, followed by up to ten seconds for
-termination. systemd prevents overlapping executions of this service; separate
-direct CLI invocations are not covered by this protection. Exit `3` is accepted
-as a completed run with maintenance findings, while exit `1` marks the service
-as failed. A service timeout may prevent email delivery.
-
-To run the scheduled service manually (sends email) and inspect its logs:
-
-```sh
-sudo systemctl start server-health-check.service
-systemctl status server-health-check.service
-sudo journalctl -u server-health-check.service --since today --no-pager
-```
-
-An inactive service after a successful run is normal: it runs once and exits.
-To disable future scheduled runs:
-
-```sh
-sudo systemctl disable --now server-health-check.timer
-```
-
-Disabling the timer does not stop a report that is already running.
-
-Application errors are also sent to the system log using `logger`, tagged
-`server-health-check`. On Ubuntu, view them with:
+It performs checks only, and will not install package updates or reboot servers.
+
+## Installation
+
+Requires Ubuntu Linux, Bash, systemd, Git, and curl.
+
+1. Clone the project, create a shortcut, and configure the server:
+
+   ```sh
+   # Clone repository to the server
+   sudo git clone https://github.com/maarsson-io/server-health-check.git /opt/server-health-check
+   # Create shortcut
+   sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/server-health-check
+   # Create and edit the config file
+   # Set the server name, Mailgun settings, and optional checks
+   sudo server-health-check init-config
+   sudoedit /etc/server-health-check.conf
+   sudo server-health-check validate-config
+   ```
+
+   Keep credentials outside Git. The config must remain `root:root` with mode `0600`.
+
+2. Test email delivery and review a report, confirm arrival before scheduling:
+
+   ```sh
+   # Test email delivery
+   sudo server-health-check test-email
+   # Test reporting, without sending report email
+   sudo server-health-check report --without-sending
+   # Final test
+   sudo server-health-check report
+   ```
+
+3. Schedule weekly reporting:
+
+   ```sh
+   cd /opt/server-health-check
+   sudo install -o root -g root -m 0644 systemd/server-health-check.service systemd/server-health-check.timer /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now server-health-check.timer
+   systemctl list-timers --all server-health-check.timer
+   ```
+
+Reports run Sundays at 04:30 in the server's timezone, including when healthy.
+Missed schedules run after downtime. Keep the checkout root-owned and not writable by other users.
+
+## Performed checks
+
+| Command | Purpose and configuration |
+| --- | --- |
+| `check-apt-index` | Refresh APT metadata; repository failures and lock conflicts are unknown. |
+| `check-apt-updates` | Refresh metadata and simulate an upgrade; list eligible, phased, and other held-back packages. Phased updates alone require no action. |
+| `check-reboot` | Check Ubuntu's reboot-required marker. |
+| `check-unattended-upgrades` | Verify the daily scheduler and a successful unattended-upgrades run within 36 hours. |
+| `check-failed-services` | List failed system-wide systemd services. |
+| `check-critical-services` | Verify configured services are running. Set `CRITICAL_SERVICES` to comma-separated `.service` names; `php*-fpm.service` includes all installed PHP-FPM versions. Default: `none`. |
+| `check-time-sync` | Check whether the system clock is synchronized. |
+| `check-logrotate` | Verify the logrotate timer and a successful run within 36 hours. |
+| `check-redis-persistence` | Check RDB/AOF failure states. Requires `redis-cli` and `REDIS_ENABLED=true`; set `REDIS_HOST`/`REDIS_PORT`. Currently supports passwordless connections only. Disabled persistence is accepted. |
+| `check-listening-interfaces` | Inspect enabled MySQL/Redis TCP listeners. Set `MYSQL_ENABLED`/`REDIS_ENABLED`, `MYSQL_LISTEN_PORTS`/`REDIS_PORT`, and each service's `*_ALLOWED_LISTEN_ADDRESSES`. Defaults allow MySQL on 127.0.0.1 and Redis on 127.0.0.1/::1. |
+| `check-git-up-to-date` | Compare the current commit with the live upstream branch; requires root's Git authentication. Any commit difference requires attention. Does not update code. |
+| `check-all` | Run all applicable checks and print a summary without sending email. |
+| `report` | Run the same checks and send plain-text/HTML email, even when healthy or a check fails. `--without-sending` previews the email as text; checks still run. |
+
+`init-config` also appends missing settings without changing existing values.
+`self-update` fast-forwards the current branch from its upstream, then runs the updated `init-config`; a clean checkout is required.
+See `server-health-check --help` and [config/config.example](config/config.example) for settings.
+
+## Troubleshooting
+
+Run `server-health-check --help` for available commands and exit codes.
+
+Errors go to stderr and the system log, tagged `server-health-check`. Scheduled output is also in the service journal:
 
 ```sh
 sudo journalctl -t server-health-check --since today --no-pager
+sudo journalctl -u server-health-check.service --since today --no-pager
 ```
 
-If logging fails, the error remains visible in the terminal along with a warning.
-Log retention follows the server's existing logging configuration.
+Failed checks do not stop other checks or the email delivery attempt.
+Missing emails can indicate server, scheduler, or delivery failure. This is not a replacement for external monitoring.
 
 ## License
 
