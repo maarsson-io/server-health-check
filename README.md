@@ -73,6 +73,12 @@ Missed schedules run after downtime. Keep the checkout root-owned and not writab
 `self-update` fast-forwards the current branch from its upstream, then runs the updated `init-config`; a clean checkout is required.
 See `server-health-check --help` and [config/config.example](config/config.example) for settings.
 
+## Example report mail
+
+<center>
+   <img src="templates/report-example.png" alt="Example health report email" width="500">
+</center>
+
 ## Troubleshooting
 
 Run `server-health-check --help` for available commands and exit codes.
