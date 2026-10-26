@@ -78,10 +78,14 @@ report_html_list_row() {
 }
 
 report_html_service_row() {
-    local entry=$1
-    if [[ $entry == *'.service: '* ]]; then
-        printf '<tr><td class="t1 line" style="padding:8px 0;border-bottom:1px solid #ececec;color:#18181b;word-break:break-word;"><strong>%s</strong>.service: %s</td></tr>\n' \
-            "$(report_html_escape "${entry%%.service: *}")" "$(report_html_escape "${entry#*.service: }")"
+    local entry=$1 suffix=''
+    case $entry in
+        *'.service: '*) suffix='.service: ' ;;
+        *'.socket: '*) suffix='.socket: ' ;;
+    esac
+    if [[ -n $suffix ]]; then
+        printf '<tr><td class="t1 line" style="padding:8px 0;border-bottom:1px solid #ececec;color:#18181b;word-break:break-word;"><strong>%s</strong>%s%s</td></tr>\n' \
+            "$(report_html_escape "${entry%%"$suffix"*}")" "$suffix" "$(report_html_escape "${entry#*"$suffix"}")"
     else
         report_html_list_row "$entry"
     fi

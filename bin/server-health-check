@@ -39,7 +39,7 @@ Commands:
              Compare the current commit with the live upstream Git branch.
              Requires root. Does not fetch, update code, or change configuration.
   check-critical-services
-             Verify configured critical systemd services are active and running.
+             Verify configured critical services are running or sockets are listening.
              Requires root. Does not change service state.
   check-time-sync
              Check whether the system clock is synchronized. Requires root.

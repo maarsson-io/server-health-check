@@ -60,7 +60,7 @@ Missed schedules run after downtime. Keep the checkout root-owned and not writab
 | `check-reboot` | Check Ubuntu's reboot-required marker. |
 | `check-unattended-upgrades` | Verify the daily scheduler and a successful unattended-upgrades run within 36 hours. |
 | `check-failed-services` | List failed system-wide systemd services. |
-| `check-critical-services` | Verify configured services are running. Set `CRITICAL_SERVICES` to comma-separated `.service` names; `php*-fpm.service` includes all installed PHP-FPM versions. Default: `none`. |
+| `check-critical-services` | Verify configured services are running or sockets are listening. Set `CRITICAL_SERVICES` to comma-separated `.service` or `.socket` names. (`php*-fpm.service` includes all installed PHP-FPM versions). Default: `none`. |
 | `check-time-sync` | Check whether the system clock is synchronized. |
 | `check-logrotate` | Verify the logrotate timer and a successful run within 36 hours. |
 | `check-redis-persistence` | Check RDB/AOF failure states. Requires `redis-cli` and `REDIS_ENABLED=true`; set `REDIS_HOST`/`REDIS_PORT`. Currently supports passwordless connections only. Disabled persistence is accepted. |

@@ -37,7 +37,8 @@ MYSQL_LISTEN_PORTS=3306,33060
 MYSQL_ALLOWED_LISTEN_ADDRESSES=127.0.0.1
 
 # Services that must stay running. Use none to skip this check.
-# Comma-separated .service names; php*-fpm.service covers all installed versions.
+# Comma-separated .service or .socket names; php*-fpm.service covers all installed versions.
+# A .socket is OK while listening.
 # Suggested list (adapt to the units installed on each server):
-# nginx.service,php*-fpm.service,mysql.service,redis-server.service,supervisor.service,tailscaled.service,beszel-agent.service,cron.service,fail2ban.service,ssh.service
+# nginx.service,php*-fpm.service,mysql.service,redis-server.service,supervisor.service,tailscaled.service,beszel-agent.service,cron.service,fail2ban.service,ssh.socket
 CRITICAL_SERVICES=none

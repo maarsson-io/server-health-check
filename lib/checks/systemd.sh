@@ -75,7 +75,9 @@ parse_critical_services() {
             if (!index(" " names " "," " id " ")) { bad=1; return }
             level=1
             if (load == "loaded") {
-                if (active == "active" && substate == "running") level=0
+                # A socket-activated service may be stopped while its socket accepts connections.
+                if (active == "active" && (substate == "running" ||
+                    (id ~ /\.socket$/ && substate == "listening"))) level=0
                 else if (active == "inactive" || active == "failed" ||
                          (active == "active" && substate == "exited")) level=3
             } else if (load ~ /^(not-found|masked|error|bad-setting)$/) level=3

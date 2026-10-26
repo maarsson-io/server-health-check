@@ -56,8 +56,8 @@ config_valid_critical_services() {
     while :; do
         unit=${remaining%%,*}
         if [[ $unit != 'php*-fpm.service' ]]; then
-            [[ ${#unit} -le 255 && $unit =~ ^([A-Za-z0-9:_.@-]|\\x[0-9A-Fa-f][0-9A-Fa-f])+\.service$ &&
-                $unit != *@.service ]] || return 1
+            [[ ${#unit} -le 255 && $unit =~ ^([A-Za-z0-9:_.@-]|\\x[0-9A-Fa-f][0-9A-Fa-f])+\.(service|socket)$ &&
+                $unit != *@.service && $unit != *@.socket ]] || return 1
         fi
         [[ $seen != *"|$unit|"* ]] || return 1
         seen+="$unit|"
@@ -204,7 +204,7 @@ load_config() {
     fi
 
     if ! config_valid_critical_services "$parsed_CRITICAL_SERVICES"; then
-        config_error 'CRITICAL_SERVICES must be none or unique .service names separated by commas without spaces; only php*-fpm.service supports a wildcard.'
+        config_error 'CRITICAL_SERVICES must be none or unique .service or .socket names separated by commas without spaces; only php*-fpm.service supports a wildcard.'
         return 1
     fi
 
