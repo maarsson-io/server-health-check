@@ -105,7 +105,7 @@ report_html_package_group() {
 
 report_html_details() {
     local i name title color value_color line label value group row
-    local eligible phased held items
+    local eligible phased on_hold held items
     for ((i=0; i<${#SHC_CHECK_NAMES[@]}; i++)); do
         name=${SHC_CHECK_NAMES[i]}
         case $name in
@@ -122,7 +122,7 @@ report_html_details() {
             *) title=$name ;;
         esac
         color=$(report_html_color "${SHC_CHECK_RESULTS[i]}")
-        eligible=''; phased=''; held=''; group=''; items=''
+        eligible=''; phased=''; on_hold=''; held=''; group=''; items=''
         printf '<tr><td class="px" style="padding:28px 32px 8px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><div class="t1" style="font-size:16px;font-weight:600;color:#18181b;">%s</div>\n' "$(report_html_escape "$title")"
         printf '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin-top:12px;font-size:14px;">\n'
         while IFS= read -r line || [[ -n $line ]]; do
@@ -138,6 +138,7 @@ report_html_details() {
                         case $group in
                             eligible) eligible+="$row"$'\n' ;;
                             phased) phased+="$row"$'\n' ;;
+                            on_hold) on_hold+="$row"$'\n' ;;
                             held) held+="$row"$'\n' ;;
                         esac
                     elif [[ $name == listening_interfaces || $name == critical_services ]]; then
@@ -166,6 +167,7 @@ report_html_details() {
                         case $label in
                             'Eligible for apt-get upgrade') group=eligible ;;
                             'Deferred due to phasing') group=phased ;;
+                            'On hold (apt-mark)') group=on_hold ;;
                             'Kept back for other reasons') group=held ;;
                             *) group='' ;;
                         esac
@@ -182,6 +184,7 @@ report_html_details() {
         printf '</table>\n'
         report_html_package_group 'Eligible for apt-get upgrade' "$eligible"
         report_html_package_group 'Deferred due to phasing' "$phased"
+        report_html_package_group 'On hold (apt-mark)' "$on_hold"
         report_html_package_group 'Kept back for other reasons' "$held"
         printf '</td></tr>\n'
     done

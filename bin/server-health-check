@@ -27,7 +27,8 @@ Commands:
              Does not install packages or count available updates.
   check-apt-updates
              Refresh APT indexes and simulate apt-get upgrade. Requires root.
-             Lists eligible, phased, and other held-back updates. Does not install packages.
+             Lists eligible, phased, on-hold, and other held-back updates.
+             Does not install packages.
   check-unattended-upgrades
              Verify the daily APT scheduler and a successful run within 36 hours.
              Requires root. Does not run or reconfigure unattended upgrades.

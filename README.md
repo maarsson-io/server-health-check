@@ -56,7 +56,7 @@ Missed schedules run after downtime. Keep the checkout root-owned and not writab
 | Command | Purpose and configuration |
 | --- | --- |
 | `check-apt-index` | Refresh APT metadata; repository failures and lock conflicts are unknown. |
-| `check-apt-updates` | Refresh metadata and simulate an upgrade; list eligible, phased, and other held-back packages. Phased updates alone require no action. |
+| `check-apt-updates` | Refresh metadata and simulate an upgrade; list eligible, phased, `apt-mark hold`, and other held-back packages. Phased and on-hold packages alone require no action. |
 | `check-reboot` | Check Ubuntu's reboot-required marker. |
 | `check-unattended-upgrades` | Verify the daily scheduler and a successful unattended-upgrades run within 36 hours. |
 | `check-failed-services` | List failed system-wide systemd services. |

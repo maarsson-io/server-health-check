@@ -39,10 +39,19 @@ check_apt_index() {
 
 # Parse only the C-locale APT upgrade summary, package lists, and Inst records.
 # Cross-check the lists against the summary before publishing any result.
+# Kept-back packages marked with apt-mark hold ($1) are intentional, not actionable.
 parse_apt_upgrade() {
-    awk '
+    SHC_APT_HOLDS="$1" awk '
         function valid_package(name) {
             return name ~ /^[a-z0-9][a-z0-9+.-]+(:[a-z0-9][a-z0-9-]*)?$/
+        }
+        BEGIN {
+            count=split(ENVIRON["SHC_APT_HOLDS"], hold_list, "\n")
+            for (i=1; i<=count; i++) {
+                if (hold_list[i] == "") continue
+                if (!valid_package(hold_list[i])) bad=1
+                holds[hold_list[i]]=1
+            }
         }
         /^The following upgrades have been deferred due to phasing:$/ { section="phased"; next }
         /^The following packages have been kept back:$/ { section="held"; next }
@@ -79,28 +88,43 @@ parse_apt_upgrade() {
             for (name in upgrades) listed++
             if (bad || summaries != 1 || total_new != 0 || total_remove != 0 ||
                 total_upgrade != ni || listed != ni || total_deferred != np+nh) exit 1
+            for (i=1; i<=nh; i++) {
+                if (held[i] in holds) on_hold[++no]=held[i]
+                else kept[++nk]=held[i]
+            }
             printf "Available updates: %d\n", ni+np+nh
             printf "Eligible for apt-get upgrade: %d\n", ni
             for (i=1; i<=ni; i++) print details[i]
             printf "Deferred due to phasing: %d\n", np
             for (i=1; i<=np; i++) print "- " phased[i]
-            printf "Kept back for other reasons: %d\n", nh
-            for (i=1; i<=nh; i++) print "- " held[i]
-            exit (ni+nh > 0 ? 3 : 0)
+            printf "On hold (apt-mark): %d\n", no
+            for (i=1; i<=no; i++) print "- " on_hold[i]
+            printf "Kept back for other reasons: %d\n", nk
+            for (i=1; i<=nk; i++) print "- " kept[i]
+            exit (ni+nk > 0 ? 3 : 0)
         }
     '
 }
 
 check_apt_updates() {
-    local simulation report status
+    local holds simulation report status
 
     if ! check_apt_index; then
         printf 'Available updates: Unknown\n'
         return 1
     fi
-    if ! command -v awk >/dev/null 2>&1; then
+    if ! command -v awk >/dev/null 2>&1 || ! command -v apt-mark >/dev/null 2>&1; then
         printf 'Available updates: Unknown\n'
-        log_error 'APT update analysis requires awk.'
+        log_error 'APT update analysis requires awk and apt-mark.'
+        return 1
+    fi
+
+    if holds=$(LC_ALL=C timeout --kill-after=5s 30s apt-mark showhold 2>/dev/null); then
+        :
+    else
+        status=$?
+        printf 'Available updates: Unknown\n'
+        log_error "could not list packages on hold (exit code $status)."
         return 1
     fi
 
@@ -119,7 +143,7 @@ check_apt_updates() {
         return 1
     fi
 
-    if report=$(printf '%s\n' "$simulation" | LC_ALL=C parse_apt_upgrade); then
+    if report=$(printf '%s\n' "$simulation" | LC_ALL=C parse_apt_upgrade "$holds"); then
         status=0
     else
         status=$?
