@@ -114,6 +114,7 @@ report_html_details() {
             unattended_upgrades) title='Unattended upgrades' ;;
             failed_services) title='Failed services' ;;
             critical_services) title='Critical services' ;;
+            git_up_to_date) title='Project Git version' ;;
             time_sync) title='Time synchronization' ;;
             logrotate) title='Logrotate' ;;
             redis_persistence) title='Redis persistence' ;;

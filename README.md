@@ -66,6 +66,25 @@ fails after a successful pull, the code remains updated: fix the config problem
 and rerun `init-config`. Even when the code is already current, config sync runs.
 Systemd unit files are not reinstalled or reloaded by this command.
 
+To check whether the installed commit matches the live upstream branch:
+
+```sh
+sudo server-health-check check-git-up-to-date
+```
+
+This check is always included in `check-all` and reports. It queries the configured
+upstream using `git ls-remote`; it does not fetch objects, change refs, update code,
+or modify config. Matching commits pass (`0`). Any commit difference requires
+attention (`3`), including a checkout ahead of or diverged from upstream. This is
+a commit comparison; uncommitted files are not assessed by this check.
+
+A missing Git checkout/upstream, detached HEAD, unavailable remote, authentication
+failure, timeout, or unsupported response is unknown (`1`). The remote query has
+a 30-second limit plus up to five seconds for cleanup. It uses the root user's Git
+authentication, with terminal credential prompts disabled and raw errors hidden.
+An unsuccessful version check does not stop other checks or the report delivery
+attempt. No repository or branch name is hardcoded.
+
 After editing the configuration, run `sudo server-health-check validate-config`.
 It checks file ownership, permissions, required settings, and basic value syntax
 without printing credentials. The example API key must be replaced. Successful
@@ -295,7 +314,7 @@ sudo server-health-check check-all
 Currently this checks available APT updates (including index refresh), reboot
 status, unattended upgrades, failed services, time synchronization, logrotate, and
 Redis persistence when enabled, configured MySQL/Redis listening addresses, and
-configured critical services.
+configured critical services, plus the project Git version.
 `check-all` requires a valid configuration. Checks
 continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),

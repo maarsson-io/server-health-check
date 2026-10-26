@@ -108,5 +108,6 @@ run_all_checks() {
     if [[ ${SHC_CRITICAL_SERVICES:-none} != none ]]; then
         checks+=(check_critical_services)
     fi
+    checks+=(check_git_up_to_date)
     run_checks "${checks[@]}"
 }
