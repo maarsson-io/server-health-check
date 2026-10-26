@@ -24,7 +24,13 @@ sudo ./bin/server-health-check validate-config
 ```
 
 The `init-config` command creates `/etc/server-health-check.conf` from the example with
-root-only access. If the path already exists, it stops without changing it.
+root-only access. If the file already exists, it appends only missing settings
+from the current example, preserving existing values, comments, and order.
+Repeated runs make no changes once all keys are present. Updates use an atomic
+file replacement with `root:root` ownership and mode `0600`. Symlinks, unsafe
+permissions, malformed syntax, and duplicate keys are rejected without changes.
+Review appended defaults and run `validate-config` afterwards; `init-config`
+does not validate credentials or the meaning of existing values.
 Edit the created file to set your server name and email credentials. Keep real
 credentials outside the repository.
 

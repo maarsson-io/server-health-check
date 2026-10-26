@@ -9,8 +9,8 @@ Usage: server-health-check <command> [options]
 
 Commands:
   init-config
-             Create /etc/server-health-check.conf from the example configuration.
-             Requires root. Existing paths are never overwritten.
+             Create configuration or append missing settings from the example.
+             Requires root. Existing values are preserved.
   validate-config
              Check configuration ownership, permissions, and values.
              Requires root. Does not modify files or send email.
