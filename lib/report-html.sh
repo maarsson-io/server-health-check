@@ -68,20 +68,44 @@ report_html_package_row() {
         printf '<tr><td class="line" style="padding:8px 0;border-bottom:1px solid #ececec;"><strong class="t1" style="color:#18181b;">%s</strong> <span class="pkg-ver t2" style="color:#71717a;word-break:break-all;">%s &rarr; <span class="t1" style="color:#18181b;">%s</span></span></td></tr>\n' \
             "$(report_html_escape "$name")" "$(report_html_escape "$installed")" "$(report_html_escape "$candidate")"
     else
-        printf '<tr><td class="t1 line" style="padding:8px 0;border-bottom:1px solid #ececec;color:#18181b;word-break:break-word;">%s</td></tr>\n' \
-            "$(report_html_escape "$entry")"
+        report_html_list_row "$entry"
     fi
+}
+
+report_html_list_row() {
+    printf '<tr><td class="t1 line" style="padding:8px 0;border-bottom:1px solid #ececec;color:#18181b;word-break:break-word;">%s</td></tr>\n' \
+        "$(report_html_escape "$1")"
+}
+
+report_html_service_row() {
+    local entry=$1
+    if [[ $entry == *'.service: '* ]]; then
+        printf '<tr><td class="t1 line" style="padding:8px 0;border-bottom:1px solid #ececec;color:#18181b;word-break:break-word;"><strong>%s</strong>.service: %s</td></tr>\n' \
+            "$(report_html_escape "${entry%%.service: *}")" "$(report_html_escape "${entry#*.service: }")"
+    else
+        report_html_list_row "$entry"
+    fi
+}
+
+report_html_list_table() {
+    printf '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="soft" style="background:#fafafa;border-radius:8px;"><tr><td style="padding:6px 16px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="mono" style="font-size:12px;line-height:1.5;">\n%s</table></td></tr></table>\n' "$1"
+}
+
+report_html_list_block() {
+    printf '<tr><td colspan="2" style="padding:8px 0;">'
+    report_html_list_table "$1"
+    printf '</td></tr>\n'
 }
 
 report_html_package_group() {
     [[ -n $2 ]] || return 0
     printf '<div class="t2" style="margin:14px 0 6px;font-size:12px;color:#71717a;">%s</div>\n' "$(report_html_escape "$1")"
-    printf '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="soft" style="background:#fafafa;border-radius:8px;"><tr><td style="padding:6px 16px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="mono" style="font-size:12px;line-height:1.5;">\n%s</table></td></tr></table>\n' "$2"
+    report_html_list_table "$2"
 }
 
 report_html_details() {
     local i name title color value_color line label value group row
-    local eligible phased held
+    local eligible phased held items
     for ((i=0; i<${#SHC_CHECK_NAMES[@]}; i++)); do
         name=${SHC_CHECK_NAMES[i]}
         case $name in
@@ -97,10 +121,14 @@ report_html_details() {
             *) title=$name ;;
         esac
         color=$(report_html_color "${SHC_CHECK_RESULTS[i]}")
-        eligible=''; phased=''; held=''; group=''
+        eligible=''; phased=''; held=''; group=''; items=''
         printf '<tr><td class="px" style="padding:28px 32px 8px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><div class="t1" style="font-size:16px;font-weight:600;color:#18181b;">%s</div>\n' "$(report_html_escape "$title")"
         printf '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin-top:12px;font-size:14px;">\n'
         while IFS= read -r line || [[ -n $line ]]; do
+            if [[ -n $items && $line != '- '* ]]; then
+                report_html_list_block "$items"
+                items=''
+            fi
             case $line in
                 '') continue ;;
                 '- '*)
@@ -111,6 +139,13 @@ report_html_details() {
                             phased) phased+="$row"$'\n' ;;
                             held) held+="$row"$'\n' ;;
                         esac
+                    elif [[ $name == listening_interfaces || $name == critical_services ]]; then
+                        if [[ $name == critical_services ]]; then
+                            row=$(report_html_service_row "${line#- }")
+                        else
+                            row=$(report_html_list_row "${line#- }")
+                        fi
+                        items+="$row"$'\n'
                     else
                         printf '<tr><td colspan="2" class="t1 mono" style="padding:5px 0;color:#18181b;word-break:break-word;">%s</td></tr>\n' "$(report_html_escape "$line")"
                     fi
@@ -142,6 +177,7 @@ report_html_details() {
                     ;;
             esac
         done <<< "${SHC_CHECK_OUTPUTS[i]}"
+        [[ -z $items ]] || report_html_list_block "$items"
         printf '</table>\n'
         report_html_package_group 'Eligible for apt-get upgrade' "$eligible"
         report_html_package_group 'Deferred due to phasing' "$phased"
