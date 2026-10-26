@@ -89,9 +89,11 @@ report_html_details() {
             reboot) title='Reboot' ;;
             unattended_upgrades) title='Unattended upgrades' ;;
             failed_services) title='Failed services' ;;
+            critical_services) title='Critical services' ;;
             time_sync) title='Time synchronization' ;;
             logrotate) title='Logrotate' ;;
             redis_persistence) title='Redis persistence' ;;
+            listening_interfaces) title='Listening interfaces' ;;
             *) title=$name ;;
         esac
         color=$(report_html_color "${SHC_CHECK_RESULTS[i]}")

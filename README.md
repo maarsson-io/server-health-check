@@ -5,12 +5,14 @@ A lightweight tool for weekly health reports from Ubuntu servers.
 The initial scope is APT update availability and reboot status, with email delivery. Each server will send a weekly report, even when no action is required.
 
 The tool will not install package updates or reboot servers.
+Database-backup failure notifications remain the responsibility of Forge.
 
 ## Status
 
 Early development. Configuration initialization, validation, test email delivery,
 APT update analysis, reboot, unattended-upgrades, failed-service and clock
-synchronization, logrotate, and optional Redis persistence checks, email reports,
+synchronization, logrotate, Redis persistence, MySQL/Redis listeners, critical-service
+checks, email reports,
 and a weekly systemd timer are available.
 
 ## Usage
@@ -53,7 +55,9 @@ Optional Redis settings are `REDIS_ENABLED` (`true` or `false`, default `false`)
 (`1`–`65535`, default `6379`). These describe a local connection as the default
 Redis user without password authentication. Existing configuration files remain
 valid without them. Set `REDIS_ENABLED=true` to include Redis in `check-all`
-and reports; otherwise Redis is skipped and is not counted as a passed check.
+and reports (persistence and TCP listeners); otherwise Redis is skipped.
+`MYSQL_ENABLED` similarly enables MySQL listener checks and defaults to `false`.
+Both disabled services are excluded from check counts.
 
 To send a test email to the configured recipient:
 
@@ -147,6 +151,39 @@ The query has a 15-second limit plus up to 2 seconds for cleanup, and never
 changes service state. It does not check user services or whether configured
 critical services are running.
 
+To verify services which must stay running:
+
+```sh
+sudo server-health-check init-config
+```
+
+Set `CRITICAL_SERVICES` in the server config, for example:
+
+```ini
+CRITICAL_SERVICES=nginx.service,php*-fpm.service,mysql.service,redis-server.service,supervisor.service,tailscaled.service,beszel-agent.service,cron.service,fail2ban.service,ssh.service
+```
+
+Use exact systemd unit names installed on that server, separated by commas without
+spaces. The only wildcard supported is `php*-fpm.service`: every installed PHP-FPM
+service must be running, including disabled older versions. No installed PHP-FPM
+service also requires attention. Aliases and instantiated service names work;
+unit templates without an instance do not. Default `none` skips this check and
+keeps existing configurations valid.
+
+```sh
+sudo server-health-check check-critical-services
+```
+
+Loaded, active, running services pass (`0`). Missing, masked, failed, inactive, or
+active-but-exited services require attention (`3`). Transitional, unsupported,
+incomplete, or failed queries are unknown (`1`). The check uses a single batch
+`systemctl show` query, plus an installed-unit query when PHP discovery is needed;
+each has a 15-second limit plus up to two seconds for cleanup. It does not change
+service state or verify application-level health. Only problematic services are
+listed. When configured, it is included in `check-all` and reports, independently
+of the system-wide failed-service check. No configured list means no passed-check
+count and a standalone `Not configured` result with exit `0`.
+
 To check system clock synchronization:
 
 ```sh
@@ -194,6 +231,40 @@ status does not prove that a save or rewrite has actually occurred since startup
 With `REDIS_ENABLED=false`, the standalone command reports that Redis was not
 checked and returns `0` without connecting.
 
+To check the TCP listening addresses of enabled MySQL and Redis services:
+
+```sh
+sudo server-health-check init-config
+sudo server-health-check check-listening-interfaces
+```
+
+`init-config` appends the new settings without changing existing values. Enable
+MySQL with `MYSQL_ENABLED=true`; Redis uses `REDIS_ENABLED`. Defaults are:
+
+```ini
+MYSQL_LISTEN_PORTS=3306,33060
+MYSQL_ALLOWED_LISTEN_ADDRESSES=127.0.0.1
+REDIS_ALLOWED_LISTEN_ADDRESSES=127.0.0.1,::1
+```
+
+MySQL ports are a comma-separated list of unique ports (`1`–`65535`, no leading
+zeros). Redis uses `REDIS_PORT`. Each address allowlist accepts `127.0.0.1`, `::1`,
+or both, separated by a comma without spaces. Every listener on a configured
+port must use an allowed address. Wildcard or other addresses require attention
+(`3`), including the X Protocol port when present. Not every port/address in the
+lists must have a listener; absent X Protocol alone is not a failure.
+
+The check uses `ss` with numeric TCP output and a ten-second time limit per
+service, plus up to two seconds for cleanup. A failed, timed-out, or unsupported
+query is unknown (`1`), as is finding no listeners on any configured port of an
+enabled service. Both services are checked even if one fails. When both are
+disabled, the standalone command reports that nothing was checked and returns
+`0`; the check is excluded from `check-all` and reports.
+
+This inspects configured ports in the current network namespace, without
+checking which process owns them, service availability, firewall rules, Unix
+sockets, or other namespaces. It never changes network or service settings.
+
 To run all implemented checks and summarize their results:
 
 ```sh
@@ -202,7 +273,9 @@ sudo server-health-check check-all
 
 Currently this checks available APT updates (including index refresh), reboot
 status, unattended upgrades, failed services, time synchronization, logrotate, and
-Redis persistence when enabled. `check-all` requires a valid configuration. Checks
+Redis persistence when enabled, configured MySQL/Redis listening addresses, and
+configured critical services.
+`check-all` requires a valid configuration. Checks
 continue after individual failures. The summary lists the checks performed and counts OK, actionable, and
 failed/unknown results. A failed or unknown result takes precedence (exit `1`),
 followed by action required (exit `3`); otherwise the exit code is `0`.

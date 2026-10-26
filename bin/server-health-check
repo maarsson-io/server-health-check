@@ -31,6 +31,9 @@ Commands:
   check-failed-services
              List system-wide services in failed state. Requires root.
              Does not start, stop, or reset services.
+  check-critical-services
+             Verify configured critical systemd services are active and running.
+             Requires root. Does not change service state.
   check-time-sync
              Check whether the system clock is synchronized. Requires root.
              Does not change the clock or time synchronization settings.
@@ -40,9 +43,13 @@ Commands:
   check-redis-persistence
              Check configured Redis RDB/AOF persistence status. Requires root.
              Reads configuration; does not trigger saves or change Redis settings.
+  check-listening-interfaces
+             Check enabled MySQL/Redis TCP listeners against allowed addresses.
+             Requires root. Does not change bindings, firewall rules, or services.
   check-all  Run all implemented checks and summarize their results. Requires root.
              Checks APT updates, reboot, unattended upgrades, failed services,
-             time synchronization, logrotate, and enabled Redis checks. Does not send email.
+             time synchronization, logrotate, Redis persistence, configured listeners,
+             and critical services. Does not send email.
   report     Run all implemented checks and email their results. Requires root.
              Sends a report even when healthy or a check fails.
 
@@ -100,14 +107,14 @@ main() {
         '')
             show_help
             ;;
-        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-logrotate|check-redis-persistence|check-all|report)
+        init-config|validate-config|test-email|check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
             if (( EUID != 0 )); then
                 log_error 'this command must be run as root.'
                 return 1
             fi
 
             case $command_name in
-                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-time-sync|check-logrotate|check-redis-persistence|check-all|report)
+                check-reboot|check-apt-index|check-apt-updates|check-unattended-upgrades|check-failed-services|check-critical-services|check-time-sync|check-logrotate|check-redis-persistence|check-listening-interfaces|check-all|report)
                     # shellcheck source=lib/checks.sh
                     source "$project_directory/lib/checks.sh" || return 1
                     # shellcheck source=lib/checks/reboot.sh
@@ -124,8 +131,10 @@ main() {
                     source "$project_directory/lib/checks/logrotate.sh" || return 1
                     # shellcheck source=lib/checks/redis.sh
                     source "$project_directory/lib/checks/redis.sh" || return 1
+                    # shellcheck source=lib/checks/listeners.sh
+                    source "$project_directory/lib/checks/listeners.sh" || return 1
                     case $command_name in
-                        check-redis-persistence|check-all|report)
+                        check-critical-services|check-redis-persistence|check-listening-interfaces|check-all|report)
                             # Server-specific checks require validated configuration.
                             # shellcheck source=lib/config.sh
                             source "$project_directory/lib/config.sh" || return 1
@@ -138,6 +147,13 @@ main() {
                         check-apt-updates) run_checks check_apt_updates ;;
                         check-unattended-upgrades) run_checks check_unattended_upgrades ;;
                         check-failed-services) run_checks check_failed_services ;;
+                        check-critical-services)
+                            if [[ $SHC_CRITICAL_SERVICES != none ]]; then
+                                run_checks check_critical_services
+                            else
+                                printf 'Critical systemd services: Not configured\n'
+                            fi
+                            ;;
                         check-time-sync) run_checks check_time_sync ;;
                         check-logrotate) run_checks check_logrotate ;;
                         check-redis-persistence)
@@ -145,6 +161,13 @@ main() {
                                 run_checks check_redis_persistence
                             else
                                 printf 'Redis persistence: Not checked (REDIS_ENABLED=false)\n'
+                            fi
+                            ;;
+                        check-listening-interfaces)
+                            if [[ $SHC_MYSQL_ENABLED == true || $SHC_REDIS_ENABLED == true ]]; then
+                                run_checks check_listening_interfaces
+                            else
+                                printf 'Listening interfaces: Not checked (MySQL and Redis disabled)\n'
                             fi
                             ;;
                         check-all) run_all_checks ;;

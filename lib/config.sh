@@ -27,6 +27,45 @@ config_valid_email() {
     config_valid_domain "${address##*@}"
 }
 
+# Listener allowlists currently support the two explicit loopback addresses.
+config_valid_listener_addresses() {
+    case $1 in
+        127.0.0.1|::1|127.0.0.1,::1|::1,127.0.0.1) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+config_valid_ports() {
+    local ports=$1 port seen='|'
+    [[ $ports =~ ^[0-9]+(,[0-9]+)*$ ]] || return 1
+    while :; do
+        port=${ports%%,*}
+        [[ $port =~ ^[1-9][0-9]{0,4}$ ]] || return 1
+        (( port <= 65535 )) || return 1
+        [[ $seen != *"|$port|"* ]] || return 1
+        seen+="$port|"
+        [[ $ports == *,* ]] || break
+        ports=${ports#*,}
+    done
+}
+
+config_valid_critical_services() {
+    local remaining=$1 unit seen='|'
+    [[ $remaining == none ]] && return 0
+    [[ -n $remaining && $remaining != *, ]] || return 1
+    while :; do
+        unit=${remaining%%,*}
+        if [[ $unit != 'php*-fpm.service' ]]; then
+            [[ ${#unit} -le 255 && $unit =~ ^([A-Za-z0-9:_.@-]|\\x[0-9A-Fa-f][0-9A-Fa-f])+\.service$ &&
+                $unit != *@.service ]] || return 1
+        fi
+        [[ $seen != *"|$unit|"* ]] || return 1
+        seen+="$unit|"
+        [[ $remaining == *,* ]] || break
+        remaining=${remaining#*,}
+    done
+}
+
 load_config() {
     # Do not let shell tracing expose credentials, including during validation.
     set +x
@@ -34,13 +73,20 @@ load_config() {
 
     unset SHC_SERVER_NAME SHC_MAILGUN_API_BASE_URL SHC_MAILGUN_DOMAIN
     unset SHC_MAILGUN_API_KEY SHC_MAIL_FROM SHC_MAIL_TO
+    unset SHC_CRITICAL_SERVICES
     unset SHC_REDIS_ENABLED SHC_REDIS_HOST SHC_REDIS_PORT
+    unset SHC_MYSQL_ENABLED SHC_MYSQL_LISTEN_PORTS
+    unset SHC_MYSQL_ALLOWED_LISTEN_ADDRESSES SHC_REDIS_ALLOWED_LISTEN_ADDRESSES
 
     local config_path=$1 metadata content status line key value
     local line_number=0 seen='|'
     local parsed_SERVER_NAME='' parsed_MAILGUN_API_BASE_URL='' parsed_MAILGUN_DOMAIN=''
     local parsed_MAILGUN_API_KEY='' parsed_MAIL_FROM='' parsed_MAIL_TO=''
+    local parsed_CRITICAL_SERVICES=none
     local parsed_REDIS_ENABLED=false parsed_REDIS_HOST=127.0.0.1 parsed_REDIS_PORT=6379
+    local parsed_MYSQL_ENABLED=false parsed_MYSQL_LISTEN_PORTS=3306,33060
+    local parsed_MYSQL_ALLOWED_LISTEN_ADDRESSES=127.0.0.1
+    local parsed_REDIS_ALLOWED_LISTEN_ADDRESSES=127.0.0.1,::1
     local LC_ALL=C
 
     if [[ -L $config_path || ! -f $config_path ]]; then
@@ -80,7 +126,8 @@ load_config() {
         value=${line#*=}
         case $key in
             SERVER_NAME|MAILGUN_API_BASE_URL|MAILGUN_DOMAIN|MAILGUN_API_KEY|MAIL_FROM|MAIL_TO|\
-            REDIS_ENABLED|REDIS_HOST|REDIS_PORT) ;;
+            REDIS_ENABLED|REDIS_HOST|REDIS_PORT|MYSQL_ENABLED|MYSQL_LISTEN_PORTS|\
+            MYSQL_ALLOWED_LISTEN_ADDRESSES|REDIS_ALLOWED_LISTEN_ADDRESSES|CRITICAL_SERVICES) ;;
             *) config_error "unknown configuration key on line $line_number."; return 1 ;;
         esac
         if [[ $seen == *"|$key|"* ]]; then
@@ -142,7 +189,27 @@ load_config() {
         return 1
     fi
 
+    case $parsed_MYSQL_ENABLED in
+        true|false) ;;
+        *) config_error 'MYSQL_ENABLED must be true or false.'; return 1 ;;
+    esac
+    if ! config_valid_ports "$parsed_MYSQL_LISTEN_PORTS"; then
+        config_error 'MYSQL_LISTEN_PORTS must contain unique ports from 1 to 65535, separated by commas without spaces or leading zeros.'
+        return 1
+    fi
+    if ! config_valid_listener_addresses "$parsed_MYSQL_ALLOWED_LISTEN_ADDRESSES" ||
+        ! config_valid_listener_addresses "$parsed_REDIS_ALLOWED_LISTEN_ADDRESSES"; then
+        config_error 'allowed listener addresses must be 127.0.0.1, ::1, or both separated by a comma without spaces or duplicates.'
+        return 1
+    fi
+
+    if ! config_valid_critical_services "$parsed_CRITICAL_SERVICES"; then
+        config_error 'CRITICAL_SERVICES must be none or unique .service names separated by commas without spaces; only php*-fpm.service supports a wildcard.'
+        return 1
+    fi
+
     # Publish values only after the whole file passes. They are not exported.
+    SHC_CRITICAL_SERVICES=$parsed_CRITICAL_SERVICES
     SHC_SERVER_NAME=$parsed_SERVER_NAME
     SHC_MAILGUN_API_BASE_URL=$parsed_MAILGUN_API_BASE_URL
     SHC_MAILGUN_DOMAIN=$parsed_MAILGUN_DOMAIN
@@ -152,4 +219,8 @@ load_config() {
     SHC_REDIS_ENABLED=$parsed_REDIS_ENABLED
     SHC_REDIS_HOST=$parsed_REDIS_HOST
     SHC_REDIS_PORT=$parsed_REDIS_PORT
+    SHC_MYSQL_ENABLED=$parsed_MYSQL_ENABLED
+    SHC_MYSQL_LISTEN_PORTS=$parsed_MYSQL_LISTEN_PORTS
+    SHC_MYSQL_ALLOWED_LISTEN_ADDRESSES=$parsed_MYSQL_ALLOWED_LISTEN_ADDRESSES
+    SHC_REDIS_ALLOWED_LISTEN_ADDRESSES=$parsed_REDIS_ALLOWED_LISTEN_ADDRESSES
 }

@@ -102,5 +102,11 @@ run_all_checks() {
     if [[ ${SHC_REDIS_ENABLED:-false} == true ]]; then
         checks+=(check_redis_persistence)
     fi
+    if [[ ${SHC_MYSQL_ENABLED:-false} == true || ${SHC_REDIS_ENABLED:-false} == true ]]; then
+        checks+=(check_listening_interfaces)
+    fi
+    if [[ ${SHC_CRITICAL_SERVICES:-none} != none ]]; then
+        checks+=(check_critical_services)
+    fi
     run_checks "${checks[@]}"
 }
