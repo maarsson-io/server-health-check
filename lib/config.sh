@@ -20,11 +20,28 @@ config_valid_domain() {
 
 config_valid_email() {
     local address=$1
-    # Basic address validation; display names and recipient lists are not supported.
+    # Basic validation for one address; display names are not supported.
     [[ $address == *@* && $address != *[[:space:]]* && $address != *[\<\>\,\;\"]* ]] || return 1
     local mailbox=${address%@*}
     [[ -n $mailbox && ${#mailbox} -le 64 && $mailbox != *@* ]] || return 1
     config_valid_domain "${address##*@}"
+}
+
+# Normalize a recipient list without evaluating its literal configuration values.
+config_parse_recipients() {
+    local remaining=$1 address normalized=''
+    [[ -n $remaining && $remaining != *, ]] || return 1
+    while :; do
+        address=${remaining%%,*}
+        address=${address#"${address%%[![:blank:]]*}"}
+        address=${address%"${address##*[![:blank:]]}"}
+        config_valid_email "$address" || return 1
+        [[ ,$normalized, != *",$address,"* ]] || return 1
+        normalized+="${normalized:+,}$address"
+        [[ $remaining == *,* ]] || break
+        remaining=${remaining#*,}
+    done
+    printf '%s' "$normalized"
 }
 
 # Listener allowlists currently support the two explicit loopback addresses.
@@ -162,17 +179,14 @@ load_config() {
         config_error 'MAILGUN_API_KEY must be replaced with a key without whitespace.'
         return 1
     fi
-    for key in MAIL_FROM MAIL_TO; do
-        if [[ $key == MAIL_FROM ]]; then
-            value=$parsed_MAIL_FROM
-        else
-            value=$parsed_MAIL_TO
-        fi
-        if ! config_valid_email "$value"; then
-            config_error "invalid $key; use a single email address without a display name."
-            return 1
-        fi
-    done
+    if ! config_valid_email "$parsed_MAIL_FROM"; then
+        config_error 'invalid MAIL_FROM; use a single email address without a display name.'
+        return 1
+    fi
+    if ! parsed_MAIL_TO=$(config_parse_recipients "$parsed_MAIL_TO"); then
+        config_error 'invalid MAIL_TO; use unique comma-separated email addresses without display names or empty entries.'
+        return 1
+    fi
 
     case $parsed_REDIS_ENABLED in
         true|false) ;;
