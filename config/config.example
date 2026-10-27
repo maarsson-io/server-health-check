@@ -18,7 +18,8 @@ MAILGUN_API_BASE_URL=https://api.mailgun.net
 MAILGUN_DOMAIN=mg.example.com
 MAILGUN_API_KEY=replace-with-your-mailgun-api-key
 
-# Sender and recipient email addresses.
+# One sender address. Recipients may be comma-separated; each gets a separate email.
+# Example: MAIL_TO=admin@example.com,ops@example.com
 MAIL_FROM=server-health@mg.example.com
 MAIL_TO=admin@example.com
 

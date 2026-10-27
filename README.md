@@ -26,6 +26,7 @@ Requires Ubuntu Linux, Bash, systemd, Git, curl, and `distro-info`.
    ```
 
    Keep credentials outside Git. The config must remain `root:root` with mode `0600`.
+   `MAIL_TO` accepts comma-separated addresses; each receives a separate email.
 
 2. Test email delivery and review a report, confirm arrival before scheduling:
 

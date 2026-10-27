@@ -3,14 +3,31 @@
 send_mailgun_email() (
     set +x
     set +v
+    local remaining=$SHC_MAIL_TO recipient recipient_number=0 result=0
+    while :; do
+        recipient=${remaining%%,*}
+        recipient_number=$((recipient_number + 1))
+        if ! send_mailgun_email_to "$recipient" "$@"; then
+            log_error "email delivery was not confirmed for recipient $recipient_number."
+            result=1
+        fi
+        [[ $remaining == *,* ]] || break
+        remaining=${remaining#*,}
+    done
+    return "$result"
+)
 
-    local subject=$1 body=$2 escaped_key http_status curl_status reason
+send_mailgun_email_to() (
+    set +x
+    set +v
+
+    local recipient=$1 subject=$2 body=$3 escaped_key http_status curl_status reason
     local sender="Health Checker Service <$SHC_MAIL_FROM>"
-    local html_body=${3:-}
+    local html_body=${4:-}
     local -a body_options=(--form-string "text=$body")
 
     if [[ ${SHC_WITHOUT_SENDING:-false} == true ]]; then
-        printf 'From: %s\nSubject: %s\n\n%s\n' "$sender" "$subject" "$body"
+        printf 'From: %s\nTo: %s\nSubject: %s\n\n%s\n\n' "$sender" "$recipient" "$subject" "$body"
         return
     fi
 
@@ -43,7 +60,7 @@ send_mailgun_email() (
         --output /dev/null \
         --write-out '%{http_code}' \
         --form-string "from=$sender" \
-        --form-string "to=$SHC_MAIL_TO" \
+        --form-string "to=$recipient" \
         --form-string "subject=$subject" \
         "${body_options[@]}" \
         --url "$SHC_MAILGUN_API_BASE_URL/v3/$SHC_MAILGUN_DOMAIN/messages" \
