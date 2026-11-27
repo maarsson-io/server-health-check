@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check Syntax
+        run: |
+          for file in bin/server-health-check lib/*.sh lib/checks/*.sh; do
+            bash -n "$file"
+          done
+
+      # The entry point sources every library file via `# shellcheck source=` directives.
+      - name: ShellCheck
+        run: |
+          shellcheck --version
+          shellcheck --external-sources --severity=warning bin/server-health-check
