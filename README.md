@@ -14,8 +14,8 @@ Requires Ubuntu Linux, Bash, systemd, Git, curl, and `distro-info`.
 1. Clone the project, create a shortcut, and configure the server:
 
    ```sh
-   # Clone repository to the server
-   sudo git clone https://github.com/maarsson-io/server-health-check.git /opt/server-health-check
+   # Clone the stable master branch to the server
+   sudo git clone --branch master https://github.com/maarsson-io/server-health-check.git /opt/server-health-check
    # Create shortcut
    sudo ln -s /opt/server-health-check/bin/server-health-check /usr/local/bin/server-health-check
    # Create and edit the config file
